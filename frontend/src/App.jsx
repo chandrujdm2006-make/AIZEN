@@ -281,7 +281,7 @@ export default function App() {
   const selectedZoneRank = currentPlan?.zones_ranked?.find(z => z.zone_id === selectedZoneId);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0F172A] via-[#131F37] to-[#1E293B] text-slate-100 flex flex-col font-sans selection:bg-blue-600 selection:text-white">
+    <div className="min-h-screen bg-gradient-to-br from-[#080B11] via-[#0E131F] to-[#151B2B] text-slate-100 flex flex-col font-sans selection:bg-violet-600 selection:text-white">
       {/* 1. FIXED HEADER (80px) */}
       <Header
         scenario={scenario}
@@ -307,7 +307,7 @@ export default function App() {
           <aside className="lg:col-span-3 xl:col-span-2 space-y-4">
             
             {/* 1. NAVIGATION MENU CARD */}
-            <div className="bg-[#1E293B]/70 backdrop-blur-md border border-[#334155] rounded-xl p-3 shadow-md space-y-1">
+            <div className="bg-[#0D1322]/85 backdrop-blur-xl border border-[#212C44] rounded-xl p-3 shadow-md space-y-1">
               <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 px-2 py-1 block">
                 Command Navigation
               </span>
@@ -316,8 +316,8 @@ export default function App() {
                 onClick={() => setActiveTab('map')}
                 className={`w-full px-3 py-2 rounded-lg flex items-center justify-between text-xs font-semibold transition-all cursor-pointer ${
                   activeTab === 'map'
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30'
-                    : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                    ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-lg shadow-violet-900/40'
+                    : 'text-slate-300 hover:text-white hover:bg-[#151D30]'
                 }`}
               >
                 <div className="flex items-center gap-2.5">
@@ -331,15 +331,15 @@ export default function App() {
                 onClick={() => setActiveTab('control_panel')}
                 className={`w-full px-3 py-2 rounded-lg flex items-center justify-between text-xs font-semibold transition-all cursor-pointer ${
                   activeTab === 'control_panel'
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30'
-                    : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                    ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-lg shadow-violet-900/40'
+                    : 'text-slate-300 hover:text-white hover:bg-[#151D30]'
                 }`}
               >
                 <div className="flex items-center gap-2.5">
                   <Sliders className="w-4 h-4 text-cyan-400" />
                   <span>Control Panel</span>
                 </div>
-                <span className="text-[10px] font-mono font-bold bg-cyan-950 text-cyan-300 px-1.5 py-0.2 rounded border border-cyan-700/50">
+                <span className="text-[10px] font-mono font-bold bg-cyan-950/80 text-cyan-300 px-1.5 py-0.2 rounded border border-cyan-700/50">
                   Admin
                 </span>
               </button>
@@ -348,8 +348,8 @@ export default function App() {
                 onClick={() => setActiveTab('allocations')}
                 className={`w-full px-3 py-2 rounded-lg flex items-center justify-between text-xs font-semibold transition-all cursor-pointer ${
                   activeTab === 'allocations'
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30'
-                    : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                    ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-lg shadow-violet-900/40'
+                    : 'text-slate-300 hover:text-white hover:bg-[#151D30]'
                 }`}
               >
                 <div className="flex items-center gap-2.5">
@@ -367,8 +367,8 @@ export default function App() {
                 onClick={() => setActiveTab('agents')}
                 className={`w-full px-3 py-2 rounded-lg flex items-center justify-between text-xs font-semibold transition-all cursor-pointer ${
                   activeTab === 'agents'
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30'
-                    : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                    ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-lg shadow-violet-900/40'
+                    : 'text-slate-300 hover:text-white hover:bg-[#151D30]'
                 }`}
               >
                 <div className="flex items-center gap-2.5">
@@ -384,8 +384,8 @@ export default function App() {
                 onClick={() => setActiveTab('alerts')}
                 className={`w-full px-3 py-2 rounded-lg flex items-center justify-between text-xs font-semibold transition-all cursor-pointer ${
                   activeTab === 'alerts'
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30'
-                    : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                    ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-lg shadow-violet-900/40'
+                    : 'text-slate-300 hover:text-white hover:bg-[#151D30]'
                 }`}
               >
                 <div className="flex items-center gap-2.5">
@@ -401,47 +401,47 @@ export default function App() {
             </div>
 
             {/* 2. QUICK STATS WIDGET */}
-            <div className="bg-[#1E293B]/70 backdrop-blur-md border border-[#334155] rounded-xl p-3.5 shadow-md space-y-2.5">
+            <div className="bg-[#0D1322]/85 backdrop-blur-xl border border-[#212C44] rounded-xl p-3.5 shadow-md space-y-2.5">
               <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block">
                 Regional Triage Snapshot
               </span>
 
               <div className="grid grid-cols-2 gap-2 text-xs font-mono">
-                <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800">
+                <div className="bg-[#0A0E1A]/80 p-2 rounded-lg border border-[#1E2638]">
                   <div className="text-[10px] text-slate-400">Active Zones</div>
                   <div className="text-base font-bold text-white mt-0.5">{scenario?.zones?.length || 4} Sectors</div>
                 </div>
 
-                <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800">
+                <div className="bg-[#0A0E1A]/80 p-2 rounded-lg border border-[#1E2638]">
                   <div className="text-[10px] text-slate-400">Evac Demand</div>
                   <div className="text-base font-bold text-cyan-300 mt-0.5">{totalEvacDemand}</div>
                 </div>
 
-                <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800">
+                <div className="bg-[#0A0E1A]/80 p-2 rounded-lg border border-[#1E2638]">
                   <div className="text-[10px] text-slate-400">Casualties</div>
                   <div className="text-base font-bold text-amber-400 mt-0.5">{totalInjured} injured</div>
                 </div>
 
-                <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800">
+                <div className="bg-[#0A0E1A]/80 p-2 rounded-lg border border-[#1E2638]">
                   <div className="text-[10px] text-slate-400">Critical</div>
                   <div className="text-base font-bold text-rose-400 mt-0.5">{totalCritical} crit</div>
                 </div>
               </div>
 
-              <div className="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800 flex items-center justify-between text-xs font-mono">
+              <div className="bg-[#0A0E1A]/80 p-2.5 rounded-lg border border-[#1E2638] flex items-center justify-between text-xs font-mono">
                 <div className="flex items-center gap-1.5 text-emerald-400">
                   <ShieldCheck className="w-3.5 h-3.5" />
                   <span className="font-semibold">Deterministic Solver</span>
                 </div>
-                <span className="text-[10px] bg-emerald-950 text-emerald-300 px-1.5 py-0.5 rounded font-bold border border-emerald-800/40">
+                <span className="text-[10px] bg-emerald-950/80 text-emerald-300 px-1.5 py-0.5 rounded font-bold border border-emerald-800/40">
                   100% Enforced
                 </span>
               </div>
             </div>
 
             {/* 3. AI AGENTS STATUS WIDGET (As specifically requested) */}
-            <div className="bg-[#1E293B]/70 backdrop-blur-md border border-[#334155] rounded-xl p-3.5 shadow-md space-y-3">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+            <div className="bg-[#0D1322]/85 backdrop-blur-xl border border-[#212C44] rounded-xl p-3.5 shadow-md space-y-3">
+              <div className="flex items-center justify-between border-b border-[#1E2638] pb-2">
                 <div className="flex items-center gap-2">
                   <Bot className="w-4 h-4 text-cyan-400" />
                   <h3 className="text-xs font-bold uppercase tracking-wider text-white font-mono">
@@ -452,7 +452,7 @@ export default function App() {
               </div>
 
               <div className="space-y-1.5 text-xs font-mono">
-                <div className="flex items-center justify-between py-1 px-2 rounded bg-slate-900/60 border border-slate-800/60">
+                <div className="flex items-center justify-between py-1 px-2 rounded bg-[#0A0E1A]/60 border border-[#1E2638]/70">
                   <span className="text-slate-300 flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                     Logistics Agent
@@ -460,7 +460,7 @@ export default function App() {
                   <span className="text-emerald-400 font-bold">✓ Ready</span>
                 </div>
 
-                <div className="flex items-center justify-between py-1 px-2 rounded bg-slate-900/60 border border-slate-800/60">
+                <div className="flex items-center justify-between py-1 px-2 rounded bg-[#0A0E1A]/60 border border-[#1E2638]/70">
                   <span className="text-slate-300 flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                     Medical Agent
@@ -468,7 +468,7 @@ export default function App() {
                   <span className="text-emerald-400 font-bold">✓ Ready</span>
                 </div>
 
-                <div className="flex items-center justify-between py-1 px-2 rounded bg-slate-900/60 border border-slate-800/60">
+                <div className="flex items-center justify-between py-1 px-2 rounded bg-[#0A0E1A]/60 border border-[#1E2638]/70">
                   <span className="text-slate-300 flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                     Comms Agent
@@ -476,7 +476,7 @@ export default function App() {
                   <span className="text-emerald-400 font-bold">✓ Ready</span>
                 </div>
 
-                <div className="flex items-center justify-between py-1 px-2 rounded bg-slate-900/60 border border-slate-800/60">
+                <div className="flex items-center justify-between py-1 px-2 rounded bg-[#0A0E1A]/60 border border-[#1E2638]/70">
                   <span className="text-slate-300 flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
                     Database Agent
@@ -485,7 +485,7 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="text-[11px] font-mono text-slate-400 pt-2 border-t border-slate-800 space-y-1">
+              <div className="text-[11px] font-mono text-slate-400 pt-2 border-t border-[#1E2638] space-y-1">
                 <div className="flex justify-between">
                   <span>Last Coordination:</span>
                   <span className="text-slate-200">Just now</span>
@@ -502,7 +502,7 @@ export default function App() {
             </div>
 
             {/* 4. SYSTEM HEALTH */}
-            <div className="bg-[#1E293B]/70 backdrop-blur-md border border-[#334155] rounded-xl p-3 text-xs font-mono space-y-1 text-slate-400">
+            <div className="bg-[#0D1322]/85 backdrop-blur-xl border border-[#212C44] rounded-xl p-3 text-xs font-mono space-y-1 text-slate-400">
               <div className="flex items-center justify-between">
                 <span>WebSocket Stream:</span>
                 <span className={`font-bold ${wsConnected ? 'text-emerald-400' : 'text-amber-400'}`}>
@@ -530,27 +530,27 @@ export default function App() {
             />
 
             {/* MIDDLE: INTERACTIVE MAP VISUALIZATION */}
-            <div className="bg-[#1E293B]/70 backdrop-blur-md border border-[#334155] rounded-xl shadow-xl overflow-hidden flex flex-col">
+            <div className="bg-[#0D1322]/85 backdrop-blur-xl border border-[#212C44] rounded-xl shadow-xl overflow-hidden flex flex-col">
               {/* Map Bar Header */}
-              <div className="px-4 py-3 bg-slate-900/80 border-b border-slate-800 flex items-center justify-between gap-3">
+              <div className="px-4 py-3 bg-[#0A0E1A]/90 border-b border-[#1E2638] flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5">
                   <Compass className="w-4 h-4 text-cyan-400" />
                   <span className="text-xs font-bold uppercase font-mono tracking-wider text-white">
                     Interactive Geospatial Digital Twin
                   </span>
                   {selectedZone && (
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue-950 text-blue-300 border border-blue-700/50">
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-violet-950/80 text-violet-300 border border-violet-700/50">
                       Target: {selectedZone.name}
                     </span>
                   )}
                 </div>
 
                 {/* 3D vs 2D Switcher */}
-                <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs font-mono">
+                <div className="flex items-center gap-1 bg-[#070A12] p-1 rounded-lg border border-[#1E2638] text-xs font-mono">
                   <button
                     onClick={() => setMapView('3D')}
                     className={`px-2.5 py-1 rounded transition-all cursor-pointer font-bold ${
-                      mapView === '3D' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                      mapView === '3D' ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow' : 'text-slate-400 hover:text-white'
                     }`}
                   >
                     3D Simulation
@@ -558,7 +558,7 @@ export default function App() {
                   <button
                     onClick={() => setMapView('2D')}
                     className={`px-2.5 py-1 rounded transition-all cursor-pointer font-bold ${
-                      mapView === '2D' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                      mapView === '2D' ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow' : 'text-slate-400 hover:text-white'
                     }`}
                   >
                     2D Vectors
@@ -567,7 +567,7 @@ export default function App() {
               </div>
 
               {/* Map Canvas Area */}
-              <div className="h-[430px] w-full bg-[#0B0F19] relative">
+              <div className="h-[430px] w-full bg-[#05070D] relative">
                 {mapView === '3D' ? (
                   <Disaster3DMap
                     scenario={scenario}
@@ -587,15 +587,15 @@ export default function App() {
             </div>
 
             {/* BOTTOM: ZONE DETAILS PANEL / DYNAMIC TABS */}
-            <div className="bg-[#1E293B]/70 backdrop-blur-md border border-[#334155] rounded-xl p-4 shadow-xl space-y-4">
+            <div className="bg-[#0D1322]/85 backdrop-blur-xl border border-[#212C44] rounded-xl p-4 shadow-xl space-y-4">
               
               {/* Dynamic Tab Bar Header */}
-              <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+              <div className="flex items-center justify-between border-b border-[#1E2638] pb-2">
                 <div className="flex items-center gap-1.5 text-xs font-mono font-bold">
                   <button
                     onClick={() => setActiveTab('map')}
                     className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                      activeTab === 'map' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                      activeTab === 'map' ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-md shadow-violet-900/30' : 'text-slate-400 hover:text-white hover:bg-[#151D30]'
                     }`}
                   >
                     Sector Detail Inspector
@@ -603,7 +603,7 @@ export default function App() {
                   <button
                     onClick={() => setActiveTab('control_panel')}
                     className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1 ${
-                      activeTab === 'control_panel' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                      activeTab === 'control_panel' ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-md shadow-violet-900/30' : 'text-slate-400 hover:text-white hover:bg-[#151D30]'
                     }`}
                   >
                     <Sliders className="w-3.5 h-3.5" />
@@ -612,7 +612,7 @@ export default function App() {
                   <button
                     onClick={() => setActiveTab('allocations')}
                     className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                      activeTab === 'allocations' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                      activeTab === 'allocations' ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-md shadow-violet-900/30' : 'text-slate-400 hover:text-white hover:bg-[#151D30]'
                     }`}
                   >
                     Allocations Matrix
@@ -620,7 +620,7 @@ export default function App() {
                   <button
                     onClick={() => setActiveTab('agents')}
                     className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                      activeTab === 'agents' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                      activeTab === 'agents' ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-md shadow-violet-900/30' : 'text-slate-400 hover:text-white hover:bg-[#151D30]'
                     }`}
                   >
                     AI Recommendations
@@ -628,7 +628,7 @@ export default function App() {
                   <button
                     onClick={() => setActiveTab('alerts')}
                     className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                      activeTab === 'alerts' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                      activeTab === 'alerts' ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-md shadow-violet-900/30' : 'text-slate-400 hover:text-white hover:bg-[#151D30]'
                     }`}
                   >
                     Public SMS
@@ -639,19 +639,19 @@ export default function App() {
               {/* TAB 1: SECTOR DETAIL INSPECTOR (Active when viewing map) */}
               {activeTab === 'map' && selectedZone && (
                 <div className="space-y-3 animate-fade-in">
-                  <div className="flex items-center justify-between bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                  <div className="flex items-center justify-between bg-[#0A0E1A]/80 p-3 rounded-xl border border-[#1E2638]">
                     <div className="flex items-center gap-3">
                       <div className={`p-2.5 rounded-xl font-mono text-sm font-bold ${
                         selectedZone.id === 'zone_e'
-                          ? 'bg-red-600/20 border border-red-500/40 text-red-400'
-                          : 'bg-blue-600/20 border border-blue-500/40 text-blue-400'
+                          ? 'bg-rose-500/20 border border-rose-500/40 text-rose-400'
+                          : 'bg-violet-600/20 border border-violet-500/40 text-violet-300'
                       }`}>
                         {selectedZone.id.toUpperCase().replace('_', ' ')}
                       </div>
                       <div>
                         <div className="text-sm font-bold text-white flex items-center gap-2">
                           <span>{selectedZone.name}</span>
-                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#131A2B] text-slate-300 border border-[#212C44]">
                             Rank #{selectedZoneRank?.rank || 1} ({selectedZoneRank?.score.toFixed(1) || '64.0'} pts)
                           </span>
                         </div>
@@ -663,7 +663,7 @@ export default function App() {
 
                     <button
                       onClick={() => setActiveTab('control_panel')}
-                      className="px-3 py-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/40 text-cyan-300 text-xs font-mono font-bold flex items-center gap-1.5 cursor-pointer transition-all"
+                      className="px-3 py-1.5 rounded-lg bg-violet-600/20 hover:bg-violet-600/30 border border-violet-500/40 text-violet-300 text-xs font-mono font-bold flex items-center gap-1.5 cursor-pointer transition-all"
                     >
                       <Sliders className="w-3.5 h-3.5" />
                       <span>Tune in Control Panel</span>
@@ -672,23 +672,23 @@ export default function App() {
 
                   {/* 4-Stat Metric Breakdown */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
-                    <div className="bg-slate-900/60 p-2.5 rounded-lg border border-slate-800">
+                    <div className="bg-[#0A0E1A]/60 p-2.5 rounded-lg border border-[#1E2638]">
                       <span className="text-slate-400 text-[10px]">Population</span>
                       <div className="text-sm font-bold text-white mt-0.5">{selectedZone.population} citizens</div>
                     </div>
-                    <div className="bg-slate-900/60 p-2.5 rounded-lg border border-slate-800">
+                    <div className="bg-[#0A0E1A]/60 p-2.5 rounded-lg border border-[#1E2638]">
                       <span className="text-slate-400 text-[10px]">Evacuation Demand</span>
                       <div className="text-sm font-bold text-cyan-300 mt-0.5">{selectedZone.evacuation_demand} persons</div>
                     </div>
-                    <div className="bg-slate-900/60 p-2.5 rounded-lg border border-slate-800">
+                    <div className="bg-[#0A0E1A]/60 p-2.5 rounded-lg border border-[#1E2638]">
                       <span className="text-slate-400 text-[10px]">Assigned Vehicles</span>
-                      <div className="text-sm font-bold text-blue-300 mt-0.5">
+                      <div className="text-sm font-bold text-cyan-300 mt-0.5">
                         {selectedZoneAlloc?.evacuation_vehicles?.allocated || 0} buses ({(selectedZoneAlloc?.evacuation_vehicles?.allocated || 0) * 20} seats)
                       </div>
                     </div>
-                    <div className="bg-slate-900/60 p-2.5 rounded-lg border border-slate-800">
+                    <div className="bg-[#0A0E1A]/60 p-2.5 rounded-lg border border-[#1E2638]">
                       <span className="text-slate-400 text-[10px]">Assigned Ambulances</span>
-                      <div className="text-sm font-bold text-rose-300 mt-0.5">
+                      <div className="text-sm font-bold text-violet-300 mt-0.5">
                         {selectedZoneAlloc?.ambulances?.allocated || 0} units ({selectedZone.critical_patients} critical)
                       </div>
                     </div>
@@ -696,7 +696,7 @@ export default function App() {
 
                   {/* Solver Rationale */}
                   {selectedZoneAlloc?.rationale && (
-                    <div className="bg-slate-900/80 p-3 rounded-lg border border-slate-800 text-xs font-mono text-slate-300">
+                    <div className="bg-[#0A0E1A]/80 p-3 rounded-lg border border-[#1E2638] text-xs font-mono text-slate-300">
                       <span className="text-[10px] text-emerald-400 font-bold uppercase block mb-1">
                         Deterministic Allocation Rationale:
                       </span>
@@ -776,7 +776,7 @@ export default function App() {
       </main>
 
       {/* Simplified Compact Modern Footer */}
-      <footer className="border-t border-[#334155]/80 bg-[#0F172A] py-3 text-center text-xs text-slate-400 font-mono flex items-center justify-center gap-4">
+      <footer className="border-t border-[#1E2638] bg-[#070A12] py-3 text-center text-xs text-slate-400 font-mono flex items-center justify-center gap-4">
         <span>AIZEN Disaster Response Command Center</span>
         <span>•</span>
         <span>WCAG 2.1 AA Compliant</span>

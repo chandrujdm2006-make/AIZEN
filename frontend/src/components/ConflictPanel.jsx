@@ -18,7 +18,7 @@ export default function ConflictPanel({ conflicts = [], onViewResolution }) {
 
   if (!conflicts || conflicts.length === 0 || acknowledged) {
     return (
-      <div className="p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-950/20 backdrop-blur-md text-xs font-mono text-emerald-300 flex items-center justify-between">
+      <div className="p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-950/20 backdrop-blur-xl text-xs font-mono text-emerald-300 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4 text-emerald-400" />
           <span>All resource tensions resolved deterministically.</span>
@@ -26,7 +26,7 @@ export default function ConflictPanel({ conflicts = [], onViewResolution }) {
         {acknowledged && (
           <button
             onClick={() => setAcknowledged(false)}
-            className="text-[10px] text-slate-400 hover:text-white underline cursor-pointer"
+            className="text-[10px] text-cyan-400 hover:text-cyan-300 underline cursor-pointer"
           >
             Show alerts
           </button>
@@ -35,11 +35,8 @@ export default function ConflictPanel({ conflicts = [], onViewResolution }) {
     );
   }
 
-  // Find the primary contested resource conflict (e.g. ambulances)
-  const primaryConflict = conflicts.find(c => c.conflict_type === 'contested_resource') || conflicts[0];
-
   return (
-    <div className="p-4 rounded-xl border border-red-500/60 bg-gradient-to-b from-red-950/40 via-[#1E293B]/90 to-[#1E293B]/90 backdrop-blur-md shadow-xl space-y-3 glow-red">
+    <div className="p-4 rounded-xl border border-red-500/60 bg-gradient-to-b from-red-950/40 via-[#0D1322]/90 to-[#0D1322]/90 backdrop-blur-xl shadow-xl space-y-3 glow-red">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-red-500/30 pb-2">
         <div className="flex items-center gap-2">
@@ -50,13 +47,13 @@ export default function ConflictPanel({ conflicts = [], onViewResolution }) {
             Resource Conflict Detected
           </h2>
         </div>
-        <span className="text-[10px] font-mono font-bold bg-red-700 text-white px-2 py-0.5 rounded-full animate-pulse">
+        <span className="text-[10px] font-mono font-bold bg-red-700 text-white px-2 py-0.5 rounded-full animate-pulse shadow-sm shadow-red-500/50">
           HIGH TENSION
         </span>
       </div>
 
       {/* Main Scarcity Metrics Callout */}
-      <div className="bg-slate-950/80 border border-red-900/60 p-3 rounded-lg space-y-1">
+      <div className="bg-slate-950/90 border border-red-900/60 p-3 rounded-lg space-y-1">
         <div className="flex items-center gap-2 text-rose-300 font-mono font-bold text-xs">
           <Ambulance className="w-4 h-4 text-red-400" />
           <span>Ambulances: 4 Requested vs 3 Available in Pool</span>
@@ -71,7 +68,7 @@ export default function ConflictPanel({ conflicts = [], onViewResolution }) {
         <span className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">
           Affected Sectors & Solver Arbitration:
         </span>
-        <div className="space-y-1 bg-slate-900/60 p-2.5 rounded-lg border border-slate-800">
+        <div className="space-y-1 bg-slate-950/70 p-2.5 rounded-lg border border-[#1E2638]">
           <div className="flex items-center justify-between text-slate-200">
             <span>• Zone A (North Riverbank - 8 Critical)</span>
             <span className="text-emerald-400 font-bold flex items-center gap-1">
@@ -97,15 +94,15 @@ export default function ConflictPanel({ conflicts = [], onViewResolution }) {
       <div className="flex items-center justify-between pt-1 gap-2">
         <button
           onClick={onViewResolution}
-          className="flex-1 py-1.5 px-3 rounded-lg bg-blue-600/30 hover:bg-blue-600/50 border border-blue-500/60 text-cyan-200 text-xs font-mono font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+          className="flex-1 py-1.5 px-3 rounded-lg bg-gradient-to-r from-violet-600/30 to-purple-600/30 hover:from-violet-600/50 hover:to-purple-600/50 border border-violet-500/60 text-cyan-200 text-xs font-mono font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm hover:shadow-violet-900/30"
         >
           <span>View Resolution Proof</span>
-          <ExternalLink className="w-3.5 h-3.5" />
+          <ExternalLink className="w-3.5 h-3.5 text-cyan-400" />
         </button>
 
         <button
           onClick={() => setAcknowledged(true)}
-          className="py-1.5 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono font-medium border border-slate-700 flex items-center gap-1 transition-all cursor-pointer"
+          className="py-1.5 px-3 rounded-lg bg-[#111726] hover:bg-[#182136] text-slate-300 text-xs font-mono font-medium border border-[#232F48] flex items-center gap-1 transition-all cursor-pointer"
         >
           <Check className="w-3.5 h-3.5 text-slate-400" />
           <span>Acknowledge</span>

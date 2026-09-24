@@ -14,11 +14,11 @@ export default function ApprovalModal({ plan, isOpen, onClose, onConfirmApproval
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+      <div className="bg-[#0D1322] border border-[#212C44] rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800"
+          className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-[#151D30]"
         >
           <X className="w-5 h-5" />
         </button>
@@ -28,7 +28,7 @@ export default function ApprovalModal({ plan, isOpen, onClose, onConfirmApproval
             <ShieldCheck className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-white">
+            <h3 className="text-base font-bold text-white font-mono">
               Commander Plan Approval
             </h3>
             <p className="text-xs text-slate-400">
@@ -37,7 +37,7 @@ export default function ApprovalModal({ plan, isOpen, onClose, onConfirmApproval
           </div>
         </div>
 
-        <div className="bg-amber-950/30 border border-amber-600/30 rounded-lg p-3 text-xs text-amber-200 mb-4 flex items-start gap-2">
+        <div className="bg-amber-950/30 border border-amber-600/30 rounded-lg p-3 text-xs text-amber-200 mb-4 flex items-start gap-2 font-mono">
           <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
           <span>
             Signing off formally authorizes field deployment of {plan.allocations?.reduce((acc, a) => acc + a.ambulances.allocated, 0)} ambulances, {plan.allocations?.reduce((acc, a) => acc + a.evacuation_vehicles.allocated, 0)} vehicles, and broadcast alerts.
@@ -46,7 +46,7 @@ export default function ApprovalModal({ plan, isOpen, onClose, onConfirmApproval
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
+            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1 font-mono">
               Commander Full Name / Call-Sign
             </label>
             <input
@@ -54,20 +54,20 @@ export default function ApprovalModal({ plan, isOpen, onClose, onConfirmApproval
               required
               value={commanderName}
               onChange={(e) => setCommanderName(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+              className="w-full bg-[#070A12] border border-[#1E2638] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-violet-500 font-mono"
               placeholder="e.g. Incident Commander John Doe"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
+            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1 font-mono">
               Operational Audit Notes
             </label>
             <textarea
               rows={3}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-blue-500 resize-none"
+              className="w-full bg-[#070A12] border border-[#1E2638] rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-violet-500 resize-none font-mono"
               placeholder="Record any tactical observations or conditions..."
             />
           </div>

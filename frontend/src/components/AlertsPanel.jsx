@@ -7,7 +7,7 @@ export default function AlertsPanel({ communicationPlan }) {
 
   if (!communicationPlan || !communicationPlan.zone_alerts) {
     return (
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-xs text-slate-500 text-center py-6">
+      <div className="bg-[#0D1322]/85 backdrop-blur-xl border border-[#212C44] rounded-xl p-4 text-xs text-slate-500 text-center py-6">
         No draft public alerts available. Generate a plan to trigger the Communication Agent.
       </div>
     );
@@ -27,11 +27,11 @@ export default function AlertsPanel({ communicationPlan }) {
   };
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-xl">
+    <div className="bg-[#0D1322]/85 backdrop-blur-xl border border-[#212C44] rounded-xl p-4 shadow-xl">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <MessageSquare className="w-4 h-4 text-blue-400" />
-          <h2 className="text-sm font-bold text-white uppercase tracking-wider">
+          <MessageSquare className="w-4 h-4 text-cyan-400" />
+          <h2 className="text-sm font-bold text-white uppercase tracking-wider font-mono">
             Draft Public SMS Dispatches ({communicationPlan.zone_alerts.length} Sectors)
           </h2>
         </div>
@@ -51,7 +51,7 @@ export default function AlertsPanel({ communicationPlan }) {
           return (
             <div
               key={za.zone_id}
-              className="bg-slate-950/70 border border-slate-800 rounded-xl p-3.5 flex flex-col justify-between"
+              className="bg-[#0A0E1A]/80 border border-[#1E2638] rounded-xl p-3.5 flex flex-col justify-between"
             >
               <div>
                 {/* Header */}

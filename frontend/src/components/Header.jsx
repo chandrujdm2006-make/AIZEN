@@ -36,26 +36,26 @@ export default function Header({
   const [showNotifications, setShowNotifications] = useState(false);
 
   return (
-    <header className="sticky top-0 z-40 h-20 bg-[#0F172A]/90 backdrop-blur-md border-b border-[#334155]/80 shadow-lg px-6 flex items-center justify-between transition-all">
+    <header className="sticky top-0 z-40 h-20 bg-[#090D17]/90 backdrop-blur-xl border-b border-[#1E2638] shadow-2xl px-6 flex items-center justify-between transition-all">
       {/* LEFT: Logo + System Name + Badge */}
       <div className="flex items-center gap-3.5">
         <div className="relative group">
-          <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-600 text-white shadow-md shadow-blue-500/25 group-hover:scale-105 transition-transform">
+          <div className="p-2.5 rounded-xl bg-gradient-to-br from-violet-600 via-purple-600 to-cyan-500 text-white shadow-lg shadow-violet-600/30 group-hover:scale-105 transition-transform border border-violet-400/30">
             <ShieldAlert className="w-6 h-6" />
           </div>
-          <span className="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-500 border-2 border-[#0F172A] rounded-full animate-pulse" />
+          <span className="absolute -bottom-1 -right-1 w-3 h-3 bg-cyan-400 border-2 border-[#090D17] rounded-full animate-pulse shadow-sm shadow-cyan-400/80" />
         </div>
 
         <div>
           <div className="flex items-center gap-2.5">
-            <span className="text-xl font-black tracking-tight text-white font-mono">
+            <span className="text-xl font-black tracking-tight text-white font-mono bg-gradient-to-r from-white via-slate-100 to-violet-200 bg-clip-text text-transparent">
               AIZEN
             </span>
-            <span className="text-[11px] font-bold font-mono px-2 py-0.5 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-700/60 shadow-sm">
+            <span className="text-[11px] font-bold font-mono px-2 py-0.5 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-500/50 shadow-sm shadow-cyan-500/20">
               v1.0
             </span>
             {currentPlan && (
-              <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-blue-950/80 text-blue-300 border border-blue-700/60">
+              <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-violet-950/80 text-violet-300 border border-violet-600/60 shadow-sm shadow-violet-900/30">
                 Plan v{currentPlan.plan_version}
               </span>
             )}
@@ -67,15 +67,15 @@ export default function Header({
       </div>
 
       {/* CENTER: Live Status Indicator */}
-      <div className="hidden lg:flex items-center gap-3 bg-slate-900/80 border border-slate-700/70 px-4 py-2 rounded-2xl shadow-inner backdrop-blur-sm">
+      <div className="hidden lg:flex items-center gap-3 bg-[#0D1322]/90 border border-[#212C44] px-4 py-2 rounded-2xl shadow-inner backdrop-blur-md">
         {/* Pulsing indicator dot */}
         <div className="flex items-center gap-2">
           <span className="relative flex h-3 w-3">
             <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
-              isLoading ? 'bg-amber-400' : 'bg-emerald-400'
+              isLoading ? 'bg-amber-400' : 'bg-cyan-400'
             }`} />
             <span className={`relative inline-flex rounded-full h-3 w-3 ${
-              isLoading ? 'bg-amber-500' : 'bg-emerald-500'
+              isLoading ? 'bg-amber-500' : 'bg-cyan-400'
             }`} />
           </span>
           <span className="text-xs font-bold text-white font-mono uppercase tracking-wider">
@@ -118,11 +118,11 @@ export default function Header({
             <span>+ ADD ZONE E</span>
           </button>
 
-          {/* Generate / Re-plan Button */}
+          {/* Generate / Re-plan Button (Electric Violet) */}
           <button
             onClick={onGeneratePlan}
             disabled={isLoading}
-            className="px-4 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs font-mono tracking-wide shadow-md shadow-blue-900/40 hover:shadow-blue-500/40 hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            className="px-4 py-2 rounded-lg bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-xs font-mono tracking-wide shadow-lg shadow-violet-900/40 hover:shadow-violet-500/40 border border-violet-400/30 hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             title="Run multi-agent arbitration pipeline"
           >
             <Zap className={`w-4 h-4 ${isLoading ? 'animate-spin' : 'text-cyan-300'}`} />
@@ -149,7 +149,7 @@ export default function Header({
           <button
             onClick={onReset}
             disabled={isLoading}
-            className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 hover:border-slate-600 transition-all cursor-pointer disabled:opacity-50"
+            className="p-2 rounded-lg bg-[#111726] hover:bg-[#182136] text-slate-300 hover:text-white border border-[#232F48] hover:border-[#35456A] transition-all cursor-pointer disabled:opacity-50"
             title="Reset scenario to baseline (Zones A-D)"
           >
             <RotateCcw className="w-4 h-4" />
@@ -157,18 +157,18 @@ export default function Header({
         </div>
 
         {/* Vertical Divider */}
-        <div className="h-8 w-px bg-slate-800 hidden sm:block" />
+        <div className="h-8 w-px bg-[#1E2638] hidden sm:block" />
 
         {/* Notifications Bell */}
         <div className="relative">
           <button 
             onClick={() => setShowNotifications(!showNotifications)}
-            className="p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/80 transition-all relative cursor-pointer"
+            className="p-2 rounded-lg bg-[#111726] hover:bg-[#182136] text-slate-300 hover:text-white border border-[#232F48] transition-all relative cursor-pointer"
             title="Notifications"
           >
             <Bell className="w-4 h-4" />
             {conflictCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center animate-bounce">
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center animate-bounce shadow-sm shadow-red-500/50">
                 {conflictCount}
               </span>
             )}
@@ -176,8 +176,8 @@ export default function Header({
 
           {/* Notification dropdown */}
           {showNotifications && (
-            <div className="absolute right-0 mt-2 w-72 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-3 z-50 animate-fade-in text-xs">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-2 font-bold text-white">
+            <div className="absolute right-0 mt-2 w-72 bg-[#0E1322] border border-[#25324D] rounded-xl shadow-2xl p-3 z-50 animate-fade-in text-xs">
+              <div className="flex items-center justify-between border-b border-[#1E2638] pb-2 mb-2 font-bold text-white">
                 <span>Operational Alerts</span>
                 <span className="text-[10px] text-cyan-400 font-mono">Live</span>
               </div>
@@ -191,7 +191,7 @@ export default function Header({
                     Zone A vs Zone D competing for limited ambulance pool (3 available).
                   </p>
                 </div>
-                <div className="p-2 rounded-lg bg-blue-950/40 border border-blue-500/40 text-cyan-200">
+                <div className="p-2 rounded-lg bg-violet-950/40 border border-violet-500/40 text-violet-200">
                   <div className="font-semibold flex items-center gap-1.5">
                     <Activity className="w-3.5 h-3.5 text-cyan-400" />
                     Database Agent
@@ -206,13 +206,13 @@ export default function Header({
         </div>
 
         {/* Commander Profile Pill */}
-        <div className="flex items-center gap-2.5 bg-slate-900/90 border border-slate-800/90 px-3 py-1.5 rounded-xl">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 text-white font-bold font-mono text-xs flex items-center justify-center shadow-inner">
+        <div className="flex items-center gap-2.5 bg-[#0E1322] border border-[#212C44] px-3 py-1.5 rounded-xl">
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-600 text-white font-bold font-mono text-xs flex items-center justify-center shadow-inner border border-violet-400/40">
             CS
           </div>
           <div className="hidden xl:block text-left">
             <div className="text-xs font-bold text-white leading-tight">Cmdr. Shepard</div>
-            <div className="text-[10px] text-slate-400 font-mono">Incident Commander</div>
+            <div className="text-[10px] text-cyan-400 font-mono">Incident Commander</div>
           </div>
         </div>
       </div>

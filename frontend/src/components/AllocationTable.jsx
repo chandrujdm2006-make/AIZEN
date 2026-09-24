@@ -4,7 +4,7 @@ import { Table, AlertCircle, ArrowUpRight, ArrowDownRight, CheckCircle2 } from '
 export default function AllocationTable({ allocations, diff, selectedZoneId, onSelectZone }) {
   if (!allocations || allocations.length === 0) {
     return (
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-xs text-slate-500 text-center py-6">
+      <div className="bg-[#0D1322]/85 backdrop-blur-xl border border-[#212C44] rounded-xl p-4 text-xs text-slate-500 text-center py-6">
         No active allocations. Generate a plan to view deterministic resource assignments.
       </div>
     );
@@ -19,11 +19,11 @@ export default function AllocationTable({ allocations, diff, selectedZoneId, onS
   }
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-xl overflow-hidden">
+    <div className="bg-[#0D1322]/85 backdrop-blur-xl border border-[#212C44] rounded-xl p-4 shadow-xl overflow-hidden">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <Table className="w-4 h-4 text-blue-400" />
-          <h2 className="text-sm font-bold text-white uppercase tracking-wider">
+          <Table className="w-4 h-4 text-cyan-400" />
+          <h2 className="text-sm font-bold text-white uppercase tracking-wider font-mono">
             Deterministic Resource Allocation Matrix
           </h2>
         </div>
@@ -35,7 +35,7 @@ export default function AllocationTable({ allocations, diff, selectedZoneId, onS
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs">
           <thead>
-            <tr className="border-b border-slate-800 text-slate-400 uppercase tracking-wider text-[10px] font-mono bg-slate-950/50">
+            <tr className="border-b border-[#1E2638] text-slate-400 uppercase tracking-wider text-[10px] font-mono bg-[#070A12]">
               <th className="py-2.5 px-3">Zone / Sector</th>
               <th className="py-2.5 px-3">Priority</th>
               <th className="py-2.5 px-3">Ambulances</th>
@@ -45,7 +45,7 @@ export default function AllocationTable({ allocations, diff, selectedZoneId, onS
               <th className="py-2.5 px-3">Unmet Demand</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-800/60 font-mono">
+          <tbody className="divide-y divide-[#1E2638]/70 font-mono">
             {allocations.map((row) => {
               const isSelected = selectedZoneId === row.zone_id;
               const zoneDiff = diffMap[row.zone_id];
@@ -55,8 +55,8 @@ export default function AllocationTable({ allocations, diff, selectedZoneId, onS
                 <tr
                   key={row.zone_id}
                   onClick={() => onSelectZone(row.zone_id)}
-                  className={`hover:bg-slate-800/50 cursor-pointer transition-colors ${
-                    isSelected ? 'bg-blue-950/40' : ''
+                  className={`hover:bg-[#151D30] cursor-pointer transition-colors ${
+                    isSelected ? 'bg-violet-950/40 border-l-2 border-violet-500' : ''
                   } ${isNewlyAdded ? 'bg-purple-950/30' : ''}`}
                 >
                   {/* Zone Name */}

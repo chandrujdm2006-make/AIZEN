@@ -6,28 +6,28 @@ export default function AgentPanels({ logistics, medical, communication, agentMo
 
   if (!logistics && !medical && !communication) {
     return (
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-xs text-slate-500 text-center py-6">
+      <div className="bg-[#0D1322]/85 backdrop-blur-xl border border-[#212C44] rounded-xl p-4 text-xs text-slate-500 text-center py-6">
         Agent telemetry idle. Click "Generate Plan" to invoke Logistics, Medical, and Communication agents.
       </div>
     );
   }
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-xl">
+    <div className="bg-[#0D1322]/85 backdrop-blur-xl border border-[#212C44] rounded-xl p-4 shadow-xl">
       {/* Header & Tabs */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-2">
           <Cpu className="w-4 h-4 text-purple-400" />
-          <h2 className="text-sm font-bold text-white uppercase tracking-wider">
+          <h2 className="text-sm font-bold text-white uppercase tracking-wider font-mono">
             Agent Intelligence Streams
           </h2>
         </div>
 
-        <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs">
+        <div className="flex items-center gap-1 bg-[#070A12] p-1 rounded-lg border border-[#1E2638] text-xs font-mono">
           <button
             onClick={() => setActiveTab('all')}
             className={`px-2.5 py-1 rounded font-medium transition-all ${
-              activeTab === 'all' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
+              activeTab === 'all' ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white font-semibold shadow-md shadow-violet-900/30' : 'text-slate-400 hover:text-white'
             }`}
           >
             All Streams (3 Columns)
@@ -35,7 +35,7 @@ export default function AgentPanels({ logistics, medical, communication, agentMo
           <button
             onClick={() => setActiveTab('logistics')}
             className={`px-2.5 py-1 rounded font-medium transition-all ${
-              activeTab === 'logistics' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
+              activeTab === 'logistics' ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white font-semibold shadow-md shadow-violet-900/30' : 'text-slate-400 hover:text-white'
             }`}
           >
             Logistics Agent
@@ -43,7 +43,7 @@ export default function AgentPanels({ logistics, medical, communication, agentMo
           <button
             onClick={() => setActiveTab('medical')}
             className={`px-2.5 py-1 rounded font-medium transition-all ${
-              activeTab === 'medical' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
+              activeTab === 'medical' ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white font-semibold shadow-md shadow-violet-900/30' : 'text-slate-400 hover:text-white'
             }`}
           >
             Medical Agent
@@ -51,7 +51,7 @@ export default function AgentPanels({ logistics, medical, communication, agentMo
           <button
             onClick={() => setActiveTab('communication')}
             className={`px-2.5 py-1 rounded font-medium transition-all ${
-              activeTab === 'communication' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
+              activeTab === 'communication' ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white font-semibold shadow-md shadow-violet-900/30' : 'text-slate-400 hover:text-white'
             }`}
           >
             Communication Agent

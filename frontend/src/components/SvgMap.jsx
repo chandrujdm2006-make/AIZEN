@@ -57,16 +57,16 @@ export default function SvgMap({ scenario, currentPlan, selectedZoneId, onSelect
   };
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-xl flex flex-col h-full">
+    <div className="bg-[#0D1322]/85 backdrop-blur-xl border border-[#212C44] rounded-xl p-4 shadow-xl flex flex-col h-full">
       {/* Panel Header */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <Navigation className="w-4 h-4 text-blue-400" />
-          <h2 className="text-sm font-bold text-white uppercase tracking-wider">
+          <Navigation className="w-4 h-4 text-cyan-400" />
+          <h2 className="text-sm font-bold text-white uppercase tracking-wider font-mono">
             Operational Vector Cartography
           </h2>
         </div>
-        <div className="flex items-center gap-3 text-[11px] text-slate-400">
+        <div className="flex items-center gap-3 text-[11px] text-slate-400 font-mono">
           <span className="flex items-center gap-1">
             <span className="w-2.5 h-2.5 rounded-full bg-red-500 inline-block animate-pulse"></span>
             Severity 4-5 Flood
@@ -83,7 +83,7 @@ export default function SvgMap({ scenario, currentPlan, selectedZoneId, onSelect
       </div>
 
       {/* SVG Canvas */}
-      <div className="relative w-full aspect-[16/10] bg-slate-950/90 rounded-lg border border-slate-800/80 overflow-hidden flex-1 flex items-center justify-center">
+      <div className="relative w-full aspect-[16/10] bg-[#05070D] rounded-lg border border-[#1E2638] overflow-hidden flex-1 flex items-center justify-center">
         <svg
           viewBox="0 0 580 430"
           className="w-full h-full select-none"

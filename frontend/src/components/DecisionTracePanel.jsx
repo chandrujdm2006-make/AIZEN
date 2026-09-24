@@ -6,7 +6,7 @@ export default function DecisionTracePanel({ decisionTrace, allocations }) {
 
   if (!decisionTrace) {
     return (
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-xs text-slate-500 text-center py-6">
+      <div className="bg-[#0D1322]/85 backdrop-blur-xl border border-[#212C44] rounded-xl p-4 text-xs text-slate-500 text-center py-6">
         No decision trace available. Generate a plan to view the step-by-step solver audit timeline.
       </div>
     );
@@ -16,11 +16,11 @@ export default function DecisionTracePanel({ decisionTrace, allocations }) {
   const visibleSteps = showAllSteps ? steps : steps.slice(0, 6);
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-xl">
+    <div className="bg-[#0D1322]/85 backdrop-blur-xl border border-[#212C44] rounded-xl p-4 shadow-xl">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <History className="w-4 h-4 text-emerald-400" />
-          <h2 className="text-sm font-bold text-white uppercase tracking-wider">
+          <h2 className="text-sm font-bold text-white uppercase tracking-wider font-mono">
             Explainability & Decision Trace Audit
           </h2>
         </div>
@@ -33,14 +33,14 @@ export default function DecisionTracePanel({ decisionTrace, allocations }) {
         {/* 1. Per-Zone Allocation Rationales */}
         <div className="space-y-2">
           <div className="text-[11px] uppercase tracking-wider text-slate-400 font-mono font-bold flex items-center gap-1.5">
-            <FileText className="w-3.5 h-3.5 text-blue-400" />
+            <FileText className="w-3.5 h-3.5 text-cyan-400" />
             Per-Sector Allocation Rationales:
           </div>
           <div className="space-y-2 max-h-[340px] overflow-y-auto pr-1">
             {allocations?.map((a) => (
               <div
                 key={a.zone_id}
-                className="p-2.5 rounded-lg bg-slate-950/70 border border-slate-800 text-xs"
+                className="p-2.5 rounded-lg bg-[#0A0E1A]/80 border border-[#1E2638] text-xs"
               >
                 <div className="flex justify-between items-baseline mb-1">
                   <span className="font-bold text-white font-mono">{a.zone_name}</span>

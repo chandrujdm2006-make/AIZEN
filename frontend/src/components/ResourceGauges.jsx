@@ -51,10 +51,10 @@ export default function ResourceGauges({ resourceSummaries, shelterStatuses, poo
       unit: 'units',
       unmet: ambUnmet,
       pct: ambPct,
-      gradient: 'from-rose-500/10 via-rose-500/5 to-transparent',
-      borderColor: 'border-rose-500/30 hover:border-rose-500/60',
-      barGradient: 'from-rose-500 to-red-600',
-      iconColor: 'text-rose-400 bg-rose-950/60',
+      gradient: 'from-rose-500/15 via-purple-500/5 to-transparent',
+      borderColor: 'border-[#2D1B36] hover:border-rose-500/60',
+      barGradient: 'from-rose-500 via-pink-600 to-violet-600',
+      iconColor: 'text-rose-400 bg-rose-950/70 border border-rose-500/30',
     },
     {
       title: 'EVACUATION VEHICLES',
@@ -65,10 +65,10 @@ export default function ResourceGauges({ resourceSummaries, shelterStatuses, poo
       unit: 'buses',
       unmet: vehUnmet,
       pct: vehPct,
-      gradient: 'from-blue-500/10 via-blue-500/5 to-transparent',
-      borderColor: 'border-blue-500/30 hover:border-blue-500/60',
-      barGradient: 'from-blue-500 to-indigo-600',
-      iconColor: 'text-blue-400 bg-blue-950/60',
+      gradient: 'from-violet-500/15 via-indigo-500/5 to-transparent',
+      borderColor: 'border-[#241F48] hover:border-violet-500/60',
+      barGradient: 'from-violet-500 via-indigo-500 to-cyan-400',
+      iconColor: 'text-violet-300 bg-violet-950/70 border border-violet-500/30',
     },
     {
       title: 'FIELD MEDICS',
@@ -78,10 +78,10 @@ export default function ResourceGauges({ resourceSummaries, shelterStatuses, poo
       unit: 'medics',
       unmet: medUnmet,
       pct: medPct,
-      gradient: 'from-emerald-500/10 via-emerald-500/5 to-transparent',
-      borderColor: 'border-emerald-500/30 hover:border-emerald-500/60',
-      barGradient: 'from-emerald-500 to-teal-600',
-      iconColor: 'text-emerald-400 bg-emerald-950/60',
+      gradient: 'from-emerald-500/15 via-teal-500/5 to-transparent',
+      borderColor: 'border-[#173038] hover:border-emerald-500/60',
+      barGradient: 'from-emerald-400 via-teal-500 to-cyan-400',
+      iconColor: 'text-emerald-400 bg-emerald-950/70 border border-emerald-500/30',
     },
     {
       title: 'SHELTER CAPACITY',
@@ -91,10 +91,10 @@ export default function ResourceGauges({ resourceSummaries, shelterStatuses, poo
       unit: 'beds',
       unmet: 0,
       pct: shelterPct,
-      gradient: 'from-cyan-500/10 via-cyan-500/5 to-transparent',
-      borderColor: 'border-cyan-500/30 hover:border-cyan-500/60',
-      barGradient: 'from-cyan-500 to-blue-600',
-      iconColor: 'text-cyan-400 bg-cyan-950/60',
+      gradient: 'from-cyan-500/15 via-blue-500/5 to-transparent',
+      borderColor: 'border-[#192E46] hover:border-cyan-500/60',
+      barGradient: 'from-cyan-400 via-sky-500 to-blue-600',
+      iconColor: 'text-cyan-400 bg-cyan-950/70 border border-cyan-500/30',
     },
   ];
 
@@ -108,12 +108,12 @@ export default function ResourceGauges({ resourceSummaries, shelterStatuses, poo
         return (
           <div
             key={idx}
-            className={`relative p-4 rounded-xl border bg-gradient-to-b ${card.gradient} bg-[#1E293B]/70 backdrop-blur-md ${card.borderColor} shadow-lg hover:-translate-y-0.5 hover:shadow-xl transition-all duration-200 group`}
+            className={`relative p-4 rounded-xl border bg-gradient-to-b ${card.gradient} bg-[#0D1322]/85 backdrop-blur-xl ${card.borderColor} shadow-xl hover:-translate-y-0.5 hover:shadow-2xl transition-all duration-300 group`}
           >
             {/* Top row: Title + Icon */}
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2.5">
-                <div className={`p-2 rounded-lg ${card.iconColor} border border-white/5 shadow-inner`}>
+                <div className={`p-2 rounded-lg ${card.iconColor} shadow-inner`}>
                   <Icon className="w-4 h-4" />
                 </div>
                 <div>
@@ -121,7 +121,7 @@ export default function ResourceGauges({ resourceSummaries, shelterStatuses, poo
                     {card.title}
                   </h3>
                   {card.subtitle && (
-                    <span className="text-[10px] text-slate-400 font-mono">
+                    <span className="text-[10px] text-cyan-400 font-mono">
                       {card.subtitle}
                     </span>
                   )}
@@ -151,13 +151,13 @@ export default function ResourceGauges({ resourceSummaries, shelterStatuses, poo
                   / {card.total} {card.unit}
                 </span>
               </div>
-              <span className="text-sm font-bold font-mono text-cyan-300">
+              <span className="text-sm font-bold font-mono text-cyan-300 bg-cyan-950/50 px-1.5 py-0.2 rounded border border-cyan-800/40">
                 {Math.round(card.pct)}%
               </span>
             </div>
 
             {/* Smooth Progress Bar with Gradient Fill */}
-            <div className="w-full h-2 bg-slate-800/80 rounded-full overflow-hidden mb-3 border border-slate-700/40">
+            <div className="w-full h-2 bg-slate-900/90 rounded-full overflow-hidden mb-3 border border-slate-800">
               <div
                 className={`h-full bg-gradient-to-r ${card.barGradient} rounded-full transition-all duration-700 ease-out shadow-sm`}
                 style={{ width: `${Math.min(100, Math.max(0, card.pct))}%` }}
@@ -165,14 +165,14 @@ export default function ResourceGauges({ resourceSummaries, shelterStatuses, poo
             </div>
 
             {/* Bottom info row: Availability & timestamp */}
-            <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 pt-1 border-t border-slate-800/60">
+            <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 pt-1.5 border-t border-slate-800/70">
               <span className="flex items-center gap-1 text-slate-300">
                 {card.unmet > 0 ? (
                   <span className="text-rose-400 font-bold">
                     ⚠️ {card.unmet} unmet demand
                   </span>
                 ) : (
-                  <span className="text-emerald-400">
+                  <span className="text-emerald-400 font-semibold">
                     ✓ All assigned safely
                   </span>
                 )}
