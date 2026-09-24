@@ -4,8 +4,16 @@ Provides REST and WebSocket API endpoints for real-time digital twin monitoring,
 agent intelligence harvesting, conflict resolution, and dynamic re-planning.
 """
 
-import json
+import os
+import sys
 from pathlib import Path
+
+# Ensure repository root is on sys.path
+_repo_root = str(Path(__file__).resolve().parent.parent.parent)
+if _repo_root not in sys.path:
+    sys.path.insert(0, _repo_root)
+
+import json
 from typing import Optional, List, Dict, Any
 from contextlib import asynccontextmanager
 
@@ -57,14 +65,34 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Enable CORS for frontend development
+# Configure CORS for deployed frontend (Vercel, custom domains, local dev)
+allowed_origins_env = os.environ.get("CORS_ORIGINS", os.environ.get("ALLOWED_ORIGINS", "*")).strip()
+if allowed_origins_env == "*" or not allowed_origins_env:
+    origins = ["*"]
+else:
+    origins = [orig.strip() for orig in allowed_origins_env.split(",") if orig.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    allow_origin_regex=r"https://.*\.vercel\.app|http://localhost:\d+|http://127\.0\.0\.1:\d+",
 )
+
+
+@app.get("/")
+def root():
+    """Service status and API documentation entry point."""
+    return {
+        "service": "AIZEN Multi-Agent Disaster Response Coordinator API",
+        "version": "2.0.0",
+        "status": "operational",
+        "docs": "/docs",
+        "health": "/api/health",
+        "websocket": "/ws",
+    }
 
 
 # --- DATABASE AGENT ENDPOINTS ---

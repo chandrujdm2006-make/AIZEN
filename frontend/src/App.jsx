@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import apiClient, { getWebSocketUrl } from './api';
 import Header from './components/Header';
 import ResourceGauges from './components/ResourceGauges';
 import Disaster3DMap from './components/Disaster3DMap';
@@ -86,8 +87,7 @@ export default function App() {
   }, []);
 
   const initWebSocket = () => {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    const wsUrl = getWebSocketUrl();
 
     try {
       const socket = new WebSocket(wsUrl);

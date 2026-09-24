@@ -3,11 +3,15 @@
   "version": "1.0.0",
   "private": true,
   "description": "Multi-Agent Disaster Response Coordinator Root Workspace",
+  "workspaces": [
+    "frontend"
+  ],
   "scripts": {
     "dev": "npm --prefix frontend run dev",
     "build": "npm --prefix frontend run build",
     "preview": "npm --prefix frontend run preview",
-    "install:frontend": "npm --prefix frontend install"
+    "install:frontend": "npm --prefix frontend install",
+    "postinstall": "npm --prefix frontend install"
   },
   "keywords": [
     "disaster-response",
