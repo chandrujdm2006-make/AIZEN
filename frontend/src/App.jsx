@@ -14,6 +14,7 @@ import ApprovalModal from './components/ApprovalModal';
 
 import { 
   Bot, 
+  Database,
   Truck, 
   HeartPulse, 
   Radio, 
@@ -25,7 +26,12 @@ import {
   Play, 
   RefreshCw,
   CheckCircle2,
-  Activity
+  Table,
+  Layers,
+  FileText,
+  Activity,
+  ShieldCheck,
+  Clock
 } from 'lucide-react';
 
 export default function App() {
@@ -34,6 +40,12 @@ export default function App() {
   const [diff, setDiff] = useState(null);
   const [llmMode, setLlmMode] = useState('fallback_mock');
   const [selectedZoneId, setSelectedZoneId] = useState(null);
+
+  // Database Agent Telemetry
+  const [dbState, setDbState] = useState(null);
+
+  // Simplified UI Main Tab: 'map', 'allocations', 'agents', 'alerts'
+  const [activeTab, setActiveTab] = useState('map');
 
   // Map view toggle: '3D' (React Three Fiber) or '2D' (SVG vector)
   const [mapView, setMapView] = useState('3D');
@@ -79,17 +91,17 @@ export default function App() {
           const msg = JSON.parse(event.data);
           if (msg.event === 'CRITICAL_ZONE_ADDED' || msg.event === 'PLAN_GENERATED') {
             fetchLatestPlan();
+            fetchDatabaseState();
           } else if (msg.event === 'SCENARIO_RESET') {
             fetchInitialData();
           }
         } catch (e) {
-          // ignore non-json
+          // ignore
         }
       };
 
       socket.onclose = () => {
         setWsConnected(false);
-        // Try reconnecting after 3 seconds
         setTimeout(initWebSocket, 3000);
       };
 
@@ -97,24 +109,36 @@ export default function App() {
         setWsConnected(false);
       };
     } catch (e) {
-      console.warn('WebSocket init skipped or proxy unreachable:', e);
+      console.warn('WebSocket init skipped:', e);
     }
   };
 
   const fetchInitialData = async () => {
     try {
-      // 1. Health & Mode via Axios
+      // 1. Health & Mode
       const healthRes = await axios.get('/api/health');
       setLlmMode(healthRes.data?.llm_mode || 'fallback_mock');
 
-      // 2. Scenario & Zones
+      // 2. Scenario
       const scenRes = await axios.get('/api/scenario');
       setScenario(scenRes.data);
 
-      // 3. Plan History
+      // 3. Database Agent Structured State
+      fetchDatabaseState();
+
+      // 4. Plan History
       fetchLatestPlan();
     } catch (err) {
-      console.error('Error fetching initial scenario data via Axios:', err);
+      console.error('Error fetching initial scenario data:', err);
+    }
+  };
+
+  const fetchDatabaseState = async () => {
+    try {
+      const res = await axios.get('/api/database/state');
+      setDbState(res.data);
+    } catch (e) {
+      console.warn('Could not fetch database state:', e);
     }
   };
 
@@ -139,22 +163,26 @@ export default function App() {
     setDiff(null);
 
     try {
-      setLoadingStep('Logistics Agent Analyzing Routes...');
-      await new Promise(r => setTimeout(r, 400));
-
-      setLoadingStep('Medical Agent Assessing Casualties...');
-      await new Promise(r => setTimeout(r, 400));
-
-      setLoadingStep('Coordinator Detecting Conflicts...');
+      setLoadingStep('[Database Agent] Retrieving initial zone & road states...');
       await new Promise(r => setTimeout(r, 350));
 
-      setLoadingStep('Deterministic Solver Executing Invariants...');
+      setLoadingStep('[Logistics Agent] Sizing vehicles & computing routes...');
+      await new Promise(r => setTimeout(r, 350));
+
+      setLoadingStep('[Medical Agent] Assessing casualty triage & ambulance scarcity...');
+      await new Promise(r => setTimeout(r, 350));
+
+      setLoadingStep('[Coordinator] Arbitrating Zone A vs Zone D conflict...');
+      await new Promise(r => setTimeout(r, 350));
+
+      setLoadingStep('[Deterministic Solver] Locking allocations & storing in DB...');
       const res = await axios.post('/api/allocate');
 
       setCurrentPlan(res.data);
       setSelectedZoneId(res.data.zones_ranked?.[0]?.zone_id || 'zone_a');
+      fetchDatabaseState();
     } catch (err) {
-      console.error('Failed to generate plan via Axios:', err);
+      console.error('Failed to generate plan:', err);
       alert('Plan generation failed. Check backend server console.');
     } finally {
       setIsLoading(false);
@@ -166,19 +194,23 @@ export default function App() {
   const handleAddZoneE = async () => {
     setIsLoading(true);
     try {
-      setLoadingStep('CRITICAL FLASH FLOOD IN ZONE E...');
-      await new Promise(r => setTimeout(r, 450));
+      setLoadingStep('[Alert] FLASH FLOOD: Zone E Dam Breach Detected...');
+      await new Promise(r => setTimeout(r, 400));
 
-      setLoadingStep('Multi-Agent Re-evaluation & Dynamic Re-solving...');
+      setLoadingStep('[Database Agent] Registering new topography & casualty data...');
+      await new Promise(r => setTimeout(r, 350));
+
+      setLoadingStep('[Solver] Dynamic re-allocation of scarce fleet...');
       const res = await axios.post('/api/add-zone');
 
       setCurrentPlan(res.data.plan);
       setDiff(res.data.diff);
       setSelectedZoneId('zone_e');
 
-      // Refresh scenario to update 3D/2D map
+      // Refresh scenario & DB state
       const scenRes = await axios.get('/api/scenario');
       setScenario(scenRes.data);
+      fetchDatabaseState();
     } catch (err) {
       console.error('Failed to add critical Zone E:', err);
       alert('Failed to simulate Zone E flood. Check backend logs.');
@@ -197,6 +229,7 @@ export default function App() {
       setCurrentPlan(null);
       setDiff(null);
       setSelectedZoneId(null);
+      fetchDatabaseState();
     } catch (err) {
       console.error('Reset failed:', err);
     } finally {
@@ -223,6 +256,7 @@ export default function App() {
         approved_at: res.data.approved_at,
       }));
       setIsApprovalOpen(false);
+      fetchDatabaseState();
     } catch (err) {
       console.error('Approval failed:', err);
     } finally {
@@ -230,14 +264,13 @@ export default function App() {
     }
   };
 
-  // Ambulance Conflict Flag: Detect if Zone A and Zone D each requested 2 ambulances
   const hasAmbulanceConflict = currentPlan?.conflicts?.some(
     c => c.conflict_type === 'contested_resource' && c.resource_type === 'ambulances'
   );
 
   return (
     <div className="min-h-screen bg-[#080D1A] text-slate-100 flex flex-col font-sans selection:bg-blue-600 selection:text-white">
-      {/* 1. Command Header Bar */}
+      {/* 1. Header Bar with One-Click Actions */}
       <Header
         scenario={scenario}
         currentPlan={currentPlan}
@@ -251,278 +284,399 @@ export default function App() {
         onOpenApprovalModal={() => setIsApprovalOpen(true)}
       />
 
-      {/* Main Command Center Dashboard */}
-      <main className="max-w-7xl mx-auto w-full px-4 py-5 flex-1 space-y-5">
+      {/* Main Simplified Command Center Container */}
+      <main className="max-w-7xl mx-auto w-full px-4 py-4 flex-1 space-y-4">
         
-        {/* RESOURCE CONFLICT HIGHLIGHT BANNER (STEP 9) */}
+        {/* Critical Resource Conflict Notification Banner */}
         {hasAmbulanceConflict && (
-          <div className="bg-gradient-to-r from-red-950 via-rose-950 to-red-950 border-2 border-red-500/70 p-3.5 rounded-2xl shadow-xl shadow-red-950/50 flex flex-wrap items-center justify-between gap-4 animate-pulse">
+          <div className="bg-gradient-to-r from-red-950/90 via-rose-950/90 to-red-950/90 border border-red-500/70 p-3 rounded-xl shadow-lg flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-red-600/30 rounded-xl border border-red-500/60 text-red-400">
-                <AlertTriangle className="w-6 h-6 animate-bounce" />
+              <div className="p-2 bg-red-600/30 rounded-lg border border-red-500/50 text-red-400">
+                <AlertTriangle className="w-5 h-5 animate-pulse" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-xs uppercase bg-red-800 text-white px-2 py-0.5 rounded font-extrabold tracking-wider">
-                    CRITICAL WARNING
+                  <span className="font-mono text-[10px] uppercase bg-red-700 text-white px-2 py-0.2 rounded font-bold">
+                    RESOURCE TENSION DETECTED
                   </span>
-                  <h3 className="text-sm font-bold text-white tracking-wide">
-                    RESOURCE CONFLICT DETECTED: 4 AMBULANCES REQUESTED VS 3 AVAILABLE
-                  </h3>
+                  <span className="text-xs font-bold text-white">
+                    4 Ambulances Requested vs 3 Available in Pool
+                  </span>
                 </div>
-                <p className="text-xs text-rose-200 mt-0.5">
-                  Zone A (8 critical) and Zone D (6 critical) both requested 2 units. Deterministic solver resolved priority: 
-                  <span className="font-bold text-white"> Zone A: 2 units</span>, 
-                  <span className="font-bold text-white"> Zone D: 1 unit</span> (1 unmet).
+                <p className="text-[11px] text-rose-200 mt-0.5">
+                  Zone A (8 critical) awarded 2 units. Zone D (6 critical) awarded 1 unit. 1 unit documented as unmet.
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2 font-mono text-xs bg-black/40 border border-red-500/40 px-3 py-1.5 rounded-lg text-rose-300 shrink-0">
-              <Zap className="w-3.5 h-3.5 text-amber-400" />
-              <span>Two-Pass Solver Guarantee Enforced</span>
-            </div>
+            <button
+              onClick={() => setActiveTab('allocations')}
+              className="text-xs bg-red-900/60 hover:bg-red-800 text-rose-200 px-3 py-1.5 rounded-lg border border-red-600/50 font-mono flex items-center gap-1.5 transition-all cursor-pointer"
+            >
+              <span>View Solver Proof</span>
+              <span>→</span>
+            </button>
           </div>
         )}
 
-        {/* 2. Top Resource Status Gauges (Live Values) */}
+        {/* 2. Top Executive Metric Gauges (Live Values) */}
         <ResourceGauges
           resourceSummaries={currentPlan?.resource_summaries}
           shelterStatuses={currentPlan?.shelter_statuses}
           pool={scenario?.resource_pool}
         />
 
-        {/* 3. Primary Command Center Workspace: AI Agents (Left) + 3D Flood Map (Right) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
-          
-          {/* LEFT: Three Holographic AI Agent Panels (4 Cols) */}
-          <div className="lg:col-span-4 flex flex-col space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Bot className="w-4 h-4 text-cyan-400" />
-                <h2 className="text-xs font-bold text-white uppercase tracking-wider">
-                  Specialized AI Agent Panels
-                </h2>
-              </div>
-              <span className="flex items-center gap-1 text-[10px] font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-800/40 px-2 py-0.5 rounded">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-                {wsConnected ? 'LIVE WS' : 'ACTIVE'}
+        {/* 3. SIMPLIFIED 4-TAB DASHBOARD NAVIGATION */}
+        <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+          {/* Main Operational Tabs */}
+          <div className="flex items-center gap-1.5 bg-slate-900/90 p-1 rounded-xl border border-slate-800 text-xs font-semibold">
+            <button
+              onClick={() => setActiveTab('map')}
+              className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all cursor-pointer ${
+                activeTab === 'map'
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-900/40'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+              }`}
+            >
+              <Box className="w-4 h-4 text-cyan-300" />
+              <span>3D Digital Twin Map</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('allocations')}
+              className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all cursor-pointer ${
+                activeTab === 'allocations'
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-900/40'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+              }`}
+            >
+              <Table className="w-4 h-4 text-emerald-400" />
+              <span>Allocations & Conflicts</span>
+              {currentPlan && (
+                <span className="bg-emerald-950 text-emerald-300 text-[10px] px-1.5 py-0.2 rounded font-mono">
+                  Solved
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => setActiveTab('agents')}
+              className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all cursor-pointer ${
+                activeTab === 'agents'
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-900/40'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+              }`}
+            >
+              <Bot className="w-4 h-4 text-purple-400" />
+              <span>AI & Database Agents</span>
+              <span className="bg-slate-800 text-cyan-300 text-[10px] px-1.5 py-0.2 rounded font-mono">
+                4 Agents
               </span>
-            </div>
+            </button>
 
-            {/* Agent 1: Logistics Agent */}
-            <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5 flex flex-col justify-between shadow-lg">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <div className="p-1.5 rounded-lg bg-blue-950 border border-blue-600/40 text-blue-400">
-                      <Truck className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold text-white uppercase">LOGISTICS AGENT</div>
-                      <div className="text-[10px] text-slate-400 font-mono">Routing & Transportation</div>
-                    </div>
-                  </div>
-                  <span className="bg-emerald-950 border border-emerald-500/40 text-emerald-300 text-[10px] px-2 py-0.5 rounded font-mono font-bold">
-                    ACTIVE
-                  </span>
-                </div>
-                <div className="text-[11px] text-slate-300 space-y-1 font-mono">
-                  <div className="flex justify-between bg-slate-950/60 p-1.5 rounded">
-                    <span>Evacuation Vehicles:</span>
-                    <span className="text-cyan-300 font-bold">{currentPlan ? '5 / 5 Allocated' : '5 Available'}</span>
-                  </div>
-                  <div className="flex justify-between bg-slate-950/60 p-1.5 rounded">
-                    <span>Active Routes:</span>
-                    <span className="text-blue-300 font-bold">{currentPlan ? 'Dijkstra Detours Active' : 'Calculated'}</span>
-                  </div>
-                  <div className="flex justify-between bg-slate-950/60 p-1.5 rounded">
-                    <span>Shelter Matching:</span>
-                    <span className="text-emerald-300 font-bold">2 Shelters (Cap 250)</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Agent 2: Medical Agent */}
-            <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5 flex flex-col justify-between shadow-lg">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <div className="p-1.5 rounded-lg bg-rose-950 border border-rose-600/40 text-rose-400">
-                      <HeartPulse className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold text-white uppercase">MEDICAL AGENT</div>
-                      <div className="text-[10px] text-slate-400 font-mono">Casualty & Trauma Triage</div>
-                    </div>
-                  </div>
-                  <span className="bg-emerald-950 border border-emerald-500/40 text-emerald-300 text-[10px] px-2 py-0.5 rounded font-mono font-bold">
-                    ACTIVE
-                  </span>
-                </div>
-                <div className="text-[11px] text-slate-300 space-y-1 font-mono">
-                  <div className="flex justify-between bg-slate-950/60 p-1.5 rounded">
-                    <span>Critical Patients:</span>
-                    <span className="text-rose-400 font-bold">
-                      {scenario?.zones?.reduce((acc, z) => acc + z.critical_patients, 0) || 20} Cases
-                    </span>
-                  </div>
-                  <div className="flex justify-between bg-slate-950/60 p-1.5 rounded">
-                    <span>Ambulances:</span>
-                    <span className="text-rose-300 font-bold">{currentPlan ? '3 / 3 Dispatched' : '3 Available'}</span>
-                  </div>
-                  <div className="flex justify-between bg-slate-950/60 p-1.5 rounded">
-                    <span>Field Paramedics:</span>
-                    <span className="text-emerald-300 font-bold">{currentPlan ? '6 / 6 Assigned' : '6 Available'}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Agent 3: Communication Agent */}
-            <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5 flex flex-col justify-between shadow-lg">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <div className="p-1.5 rounded-lg bg-purple-950 border border-purple-600/40 text-purple-400">
-                      <Radio className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold text-white uppercase">COMMUNICATION AGENT</div>
-                      <div className="text-[10px] text-slate-400 font-mono">Public Alerts & Warnings</div>
-                    </div>
-                  </div>
-                  <span className="bg-emerald-950 border border-emerald-500/40 text-emerald-300 text-[10px] px-2 py-0.5 rounded font-mono font-bold">
-                    ACTIVE
-                  </span>
-                </div>
-                <div className="text-[11px] text-slate-300 space-y-1 font-mono">
-                  <div className="flex justify-between bg-slate-950/60 p-1.5 rounded">
-                    <span>Public Dispatches:</span>
-                    <span className="text-purple-300 font-bold">
-                      {currentPlan?.communication_plan?.zone_alerts?.length || 4} Sectors
-                    </span>
-                  </div>
-                  <div className="flex justify-between bg-slate-950/60 p-1.5 rounded">
-                    <span>Route Hazard Warnings:</span>
-                    <span className="text-amber-400 font-bold">Zone A Detour Alert</span>
-                  </div>
-                  <div className="flex justify-between bg-slate-950/60 p-1.5 rounded">
-                    <span>Broadcast Format:</span>
-                    <span className="text-cyan-300 font-bold">Standard SMS (&lt;160c)</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Demo Controls */}
-            <div className="bg-slate-900/60 border border-slate-800 p-2.5 rounded-xl space-y-2">
-              <button
-                onClick={handleAddZoneE}
-                disabled={isLoading || scenario?.zones?.some(z => z.id === 'zone_e')}
-                className="w-full bg-red-600 hover:bg-red-500 active:bg-red-700 disabled:opacity-40 text-white font-bold py-2 rounded-lg text-xs flex items-center justify-center gap-2 shadow-lg shadow-red-950/50 cursor-pointer transition-all"
-              >
-                <PlusCircle className="w-4 h-4" />
-                <span>+ ADD CRITICAL ZONE (ZONE E)</span>
-              </button>
-            </div>
+            <button
+              onClick={() => setActiveTab('alerts')}
+              className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all cursor-pointer ${
+                activeTab === 'alerts'
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-900/40'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+              }`}
+            >
+              <Radio className="w-4 h-4 text-amber-400" />
+              <span>Public SMS Alerts</span>
+              {currentPlan?.communication_plan?.zone_alerts && (
+                <span className="bg-amber-950 text-amber-300 text-[10px] px-1.5 py-0.2 rounded font-mono">
+                  {currentPlan.communication_plan.zone_alerts.length}
+                </span>
+              )}
+            </button>
           </div>
 
-          {/* RIGHT: 3D Digital Twin Map / 2D Cartography (8 Cols) */}
-          <div className="lg:col-span-8 flex flex-col">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-white uppercase tracking-wider">
-                  Disaster Operational Environment
-                </span>
-                <span className="text-[10px] text-slate-500 font-mono">
-                  (Isometric 3D Digital Twin with Animated Vehicles)
-                </span>
-              </div>
-
-              {/* View Mode Toggle */}
-              <div className="flex items-center gap-1 bg-slate-950 border border-slate-800 p-0.5 rounded-lg text-xs font-mono">
-                <button
-                  onClick={() => setMapView('3D')}
-                  className={`px-3 py-1 rounded flex items-center gap-1.5 transition-all ${
-                    mapView === '3D' ? 'bg-blue-600 text-white font-bold' : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <Box className="w-3.5 h-3.5" />
-                  <span>3D Digital Twin</span>
-                </button>
-                <button
-                  onClick={() => setMapView('2D')}
-                  className={`px-3 py-1 rounded flex items-center gap-1.5 transition-all ${
-                    mapView === '2D' ? 'bg-blue-600 text-white font-bold' : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <Map className="w-3.5 h-3.5" />
-                  <span>2D Tactical SVG</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Map Display */}
-            {mapView === '3D' ? (
-              <Disaster3DMap
-                scenario={scenario}
-                currentPlan={currentPlan}
-                selectedZoneId={selectedZoneId}
-                onSelectZone={(id) => setSelectedZoneId(id)}
-              />
-            ) : (
-              <SvgMap
-                scenario={scenario}
-                currentPlan={currentPlan}
-                selectedZoneId={selectedZoneId}
-                onSelectZone={(id) => setSelectedZoneId(id)}
-              />
+          {/* Database Agent Live Status Pill */}
+          <div className="hidden sm:flex items-center gap-2 text-xs font-mono bg-slate-900/80 border border-slate-800 px-3 py-1.5 rounded-lg text-slate-300">
+            <Database className="w-3.5 h-3.5 text-cyan-400" />
+            <span className="text-[11px] text-slate-400">Database Agent:</span>
+            <span className="text-cyan-300 font-bold">Synchronized</span>
+            {dbState?.data_freshness_timestamp && (
+              <span className="text-[10px] text-slate-500">
+                ({new Date(dbState.data_freshness_timestamp).toLocaleTimeString()})
+              </span>
             )}
           </div>
         </div>
 
-        {/* 4. Prioritized Sectors (0-100 Score Breakdown) */}
-        <PriorityList
-          zonesRanked={currentPlan?.zones_ranked}
-          selectedZoneId={selectedZoneId}
-          onSelectZone={(id) => setSelectedZoneId(id)}
-        />
+        {/* 4. TAB CONTENT PANELS */}
 
-        {/* 5. Conflict Resolution Panel */}
-        <ConflictPanel conflicts={currentPlan?.conflicts} />
+        {/* TAB 1: 3D DIGITAL TWIN & SECTORS */}
+        {activeTab === 'map' && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+              {/* Map Canvas (8 cols) */}
+              <div className="lg:col-span-8 flex flex-col">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2 text-xs font-bold text-white uppercase tracking-wider">
+                    <span>Tactical Digital Twin</span>
+                    <span className="text-[10px] text-slate-500 font-mono">
+                      (Moving Ambulances • Buses • Boats • Drones)
+                    </span>
+                  </div>
 
-        {/* 6. Resource Allocation & Unmet Demands Matrix */}
-        <AllocationTable
-          allocations={currentPlan?.allocations}
-          diff={diff}
-          selectedZoneId={selectedZoneId}
-          onSelectZone={(id) => setSelectedZoneId(id)}
-        />
+                  <div className="flex items-center gap-1 bg-slate-950 border border-slate-800 p-0.5 rounded-lg text-xs font-mono">
+                    <button
+                      onClick={() => setMapView('3D')}
+                      className={`px-3 py-1 rounded flex items-center gap-1.5 transition-all cursor-pointer ${
+                        mapView === '3D' ? 'bg-blue-600 text-white font-bold' : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <Box className="w-3.5 h-3.5" />
+                      <span>3D View</span>
+                    </button>
+                    <button
+                      onClick={() => setMapView('2D')}
+                      className={`px-3 py-1 rounded flex items-center gap-1.5 transition-all cursor-pointer ${
+                        mapView === '2D' ? 'bg-blue-600 text-white font-bold' : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <Map className="w-3.5 h-3.5" />
+                      <span>2D Vector</span>
+                    </button>
+                  </div>
+                </div>
 
-        {/* 7. Detailed Multi-Agent Intelligence Streams */}
-        <AgentPanels
-          logistics={currentPlan?.logistics_recommendations}
-          medical={currentPlan?.medical_recommendations}
-          communication={currentPlan?.communication_plan}
-          agentModes={currentPlan?.agent_execution_modes}
-        />
+                {mapView === '3D' ? (
+                  <Disaster3DMap
+                    scenario={scenario}
+                    currentPlan={currentPlan}
+                    selectedZoneId={selectedZoneId}
+                    onSelectZone={(id) => setSelectedZoneId(id)}
+                  />
+                ) : (
+                  <SvgMap
+                    scenario={scenario}
+                    currentPlan={currentPlan}
+                    selectedZoneId={selectedZoneId}
+                    onSelectZone={(id) => setSelectedZoneId(id)}
+                  />
+                )}
+              </div>
 
-        {/* 8. Explainability & Decision Trace Audit */}
-        <DecisionTracePanel
-          decisionTrace={currentPlan?.decision_trace}
-          allocations={currentPlan?.allocations}
-        />
+              {/* Zone Priority List (4 cols) */}
+              <div className="lg:col-span-4 flex flex-col">
+                <PriorityList
+                  zonesRanked={currentPlan?.zones_ranked}
+                  selectedZoneId={selectedZoneId}
+                  onSelectZone={(id) => setSelectedZoneId(id)}
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
-        {/* 9. Draft Public Alerts Dispatch Panel */}
-        <AlertsPanel
-          communicationPlan={currentPlan?.communication_plan}
-        />
+        {/* TAB 2: RESOURCE ALLOCATIONS & CONFLICT RESOLUTION */}
+        {activeTab === 'allocations' && (
+          <div className="space-y-4">
+            <AllocationTable
+              allocations={currentPlan?.allocations}
+              diff={diff}
+              selectedZoneId={selectedZoneId}
+              onSelectZone={(id) => setSelectedZoneId(id)}
+            />
+
+            <ConflictPanel conflicts={currentPlan?.conflicts} />
+
+            <DecisionTracePanel
+              decisionTrace={currentPlan?.decision_trace}
+              allocations={currentPlan?.allocations}
+            />
+          </div>
+        )}
+
+        {/* TAB 3: MULTI-AGENT PIPELINE & DATABASE AGENT TELEMETRY */}
+        {activeTab === 'agents' && (
+          <div className="space-y-4">
+            {/* Visual Agent Pipeline Diagram */}
+            <div className="bg-slate-900/90 border border-slate-800 p-4 rounded-xl shadow-lg">
+              <div className="text-xs font-bold text-white uppercase tracking-wider mb-2 flex items-center gap-2">
+                <Activity className="w-4 h-4 text-cyan-400" />
+                Multi-Agent Request Pipeline
+              </div>
+              <div className="flex flex-wrap items-center justify-between text-xs font-mono bg-slate-950/70 p-3 rounded-lg border border-slate-800 text-slate-300 gap-2">
+                <div className="flex items-center gap-1.5 text-cyan-300 font-bold">
+                  <Database className="w-3.5 h-3.5" />
+                  <span>[1] Database Agent (Initial State)</span>
+                </div>
+                <span className="text-slate-600">➔</span>
+                <div className="flex items-center gap-1.5 text-blue-300">
+                  <Truck className="w-3.5 h-3.5" />
+                  <span>[2] Logistics & Medical Reasoning</span>
+                </div>
+                <span className="text-slate-600">➔</span>
+                <div className="flex items-center gap-1.5 text-amber-300 font-bold">
+                  <Zap className="w-3.5 h-3.5" />
+                  <span>[3] Conflict Resolution Layer</span>
+                </div>
+                <span className="text-slate-600">➔</span>
+                <div className="flex items-center gap-1.5 text-emerald-300 font-bold">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>[4] Deterministic Constraint Solver</span>
+                </div>
+                <span className="text-slate-600">➔</span>
+                <div className="flex items-center gap-1.5 text-purple-300">
+                  <Radio className="w-3.5 h-3.5" />
+                  <span>[5] Database Commitment & Alerts</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 4 Agent Cards Grid (Database + Logistics + Medical + Communication) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+              {/* Database Agent Card */}
+              <div className="bg-slate-900 border border-cyan-500/30 rounded-xl p-3.5 shadow-md flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 bg-cyan-950 border border-cyan-500/40 rounded-lg text-cyan-300">
+                        <Database className="w-4 h-4" />
+                      </div>
+                      <span className="text-xs font-bold text-white uppercase">DATABASE AGENT</span>
+                    </div>
+                    <span className="bg-cyan-950 text-cyan-300 text-[9px] px-1.5 py-0.2 rounded font-mono font-bold">
+                      ACTIVE
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-300 mb-2 leading-relaxed">
+                    Maintains persistent SQLite storage, topology graphs, and historical response records.
+                  </p>
+                  <div className="text-[10px] text-slate-400 space-y-1 font-mono">
+                    <div className="flex justify-between bg-slate-950/60 p-1 rounded">
+                      <span>Tracked Zones:</span>
+                      <span className="text-cyan-300 font-bold">{scenario?.zones?.length || 4} Sectors</span>
+                    </div>
+                    <div className="flex justify-between bg-slate-950/60 p-1 rounded">
+                      <span>Persistence:</span>
+                      <span className="text-emerald-400 font-bold">SQLite Connected</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Logistics Agent Card */}
+              <div className="bg-slate-900 border border-slate-800 rounded-xl p-3.5 shadow-md flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 bg-blue-950 border border-blue-500/40 rounded-lg text-blue-300">
+                        <Truck className="w-4 h-4" />
+                      </div>
+                      <span className="text-xs font-bold text-white uppercase">LOGISTICS AGENT</span>
+                    </div>
+                    <span className="bg-emerald-950 text-emerald-300 text-[9px] px-1.5 py-0.2 rounded font-mono font-bold">
+                      ACTIVE
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-300 mb-2 leading-relaxed">
+                    Evaluates evacuation vehicles, Dijkstra shortest paths, and shelter capacity matching.
+                  </p>
+                  <div className="text-[10px] text-slate-400 space-y-1 font-mono">
+                    <div className="flex justify-between bg-slate-950/60 p-1 rounded">
+                      <span>Vehicle Demand:</span>
+                      <span className="text-cyan-300 font-bold">{currentPlan ? '5 / 5 Units' : 'Assessing'}</span>
+                    </div>
+                    <div className="flex justify-between bg-slate-950/60 p-1 rounded">
+                      <span>Shelters:</span>
+                      <span className="text-emerald-400 font-bold">2 Reachable</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Medical Agent Card */}
+              <div className="bg-slate-900 border border-slate-800 rounded-xl p-3.5 shadow-md flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 bg-rose-950 border border-rose-500/40 rounded-lg text-rose-300">
+                        <HeartPulse className="w-4 h-4" />
+                      </div>
+                      <span className="text-xs font-bold text-white uppercase">MEDICAL AGENT</span>
+                    </div>
+                    <span className="bg-emerald-950 text-emerald-300 text-[9px] px-1.5 py-0.2 rounded font-mono font-bold">
+                      ACTIVE
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-300 mb-2 leading-relaxed">
+                    Triages critical casualties, trauma severity, and emergency ambulance transport.
+                  </p>
+                  <div className="text-[10px] text-slate-400 space-y-1 font-mono">
+                    <div className="flex justify-between bg-slate-950/60 p-1 rounded">
+                      <span>Ambulance Pool:</span>
+                      <span className="text-rose-300 font-bold">3 Units Max</span>
+                    </div>
+                    <div className="flex justify-between bg-slate-950/60 p-1 rounded">
+                      <span>Field Medics:</span>
+                      <span className="text-emerald-400 font-bold">6 Active</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Communication Agent Card */}
+              <div className="bg-slate-900 border border-slate-800 rounded-xl p-3.5 shadow-md flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 bg-purple-950 border border-purple-500/40 rounded-lg text-purple-300">
+                        <Radio className="w-4 h-4" />
+                      </div>
+                      <span className="text-xs font-bold text-white uppercase">COMMUNICATION AGENT</span>
+                    </div>
+                    <span className="bg-emerald-950 text-emerald-300 text-[9px] px-1.5 py-0.2 rounded font-mono font-bold">
+                      ACTIVE
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-300 mb-2 leading-relaxed">
+                    Synthesizes concise SMS advisories and route hazard notifications for citizens.
+                  </p>
+                  <div className="text-[10px] text-slate-400 space-y-1 font-mono">
+                    <div className="flex justify-between bg-slate-950/60 p-1 rounded">
+                      <span>Dispatches:</span>
+                      <span className="text-purple-300 font-bold">{currentPlan?.communication_plan?.zone_alerts?.length || 4} Zones</span>
+                    </div>
+                    <div className="flex justify-between bg-slate-950/60 p-1 rounded">
+                      <span>Format:</span>
+                      <span className="text-cyan-300 font-bold">&lt;160 Chars</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Agent Telemetry Streams */}
+            <AgentPanels
+              logistics={currentPlan?.logistics_recommendations}
+              medical={currentPlan?.medical_recommendations}
+              communication={currentPlan?.communication_plan}
+              agentModes={currentPlan?.agent_execution_modes}
+            />
+          </div>
+        )}
+
+        {/* TAB 4: PUBLIC SMS ALERTS */}
+        {activeTab === 'alerts' && (
+          <div className="space-y-4">
+            <AlertsPanel
+              communicationPlan={currentPlan?.communication_plan}
+            />
+          </div>
+        )}
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-800/80 bg-slate-950 py-3 text-center text-xs text-slate-500 font-mono">
-        Multi-Agent Disaster Response Coordinator • Problem HTH-GA-07 • 3D Digital Twin Command Center
+      {/* Simplified Compact Footer */}
+      <footer className="border-t border-slate-800/80 bg-slate-950 py-3 text-center text-xs text-slate-500 font-mono flex items-center justify-center gap-4">
+        <span>AIZEN Disaster Response Coordinator</span>
+        <span>•</span>
+        <span>Database Agent: Persistent SQLite</span>
+        <span>•</span>
+        <span>Deterministic Constraints Enforced</span>
       </footer>
 
       {/* Commander Approval Modal */}

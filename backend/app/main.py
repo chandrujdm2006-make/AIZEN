@@ -25,6 +25,7 @@ from backend.app.state import global_state_manager
 from backend.app.coordinator import DisasterCoordinator
 from backend.app.llm import get_llm_client
 from backend.app.database import init_db, seed_db_from_base_scenario, log_event
+from backend.app.agents.database_agent import database_agent
 from backend.app.websocket_manager import ws_manager
 
 
@@ -50,6 +51,39 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# --- DATABASE AGENT ENDPOINTS ---
+
+@app.get("/api/database/state")
+def get_database_agent_state():
+    """
+    Returns single-source-of-truth disaster state maintained by Database Agent:
+    - zone_data
+    - resource_status
+    - available_resources
+    - data_freshness_timestamp
+    - conflict_alerts
+    """
+    return database_agent.get_structured_state()
+
+
+@app.get("/api/database/logistics-query")
+def query_logistics_data():
+    """Provides verified routes, shelter capacities, and vehicle fleet status to Logistics Agent."""
+    return database_agent.query_for_logistics()
+
+
+@app.get("/api/database/medical-query")
+def query_medical_data():
+    """Provides casualty counts, triage severity, and paramedic inventory to Medical Agent."""
+    return database_agent.query_for_medical()
+
+
+@app.get("/api/database/communication-query")
+def query_communication_data():
+    """Provides zone public safety demographics and hazard alerts to Communication Agent."""
+    return database_agent.query_for_communication()
 
 
 # --- WEBSOCKET ENDPOINT ---
@@ -193,6 +227,7 @@ def generate_plan_internal() -> CoordinatedPlan:
         is_replan=(next_version > 1),
     )
     global_state_manager.save_plan(plan)
+    database_agent.store_allocation_decision(plan)
     log_event("PLAN_GENERATED", {"version": next_version, "plan_id": plan.plan_id})
     return plan
 
