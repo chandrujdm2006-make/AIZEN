@@ -1,0 +1,164 @@
+{
+  "scenario_id": "flood_base",
+  "title": "Metropolitan Riverine Flash Flood",
+  "description": "Category 4 riverine flash flood after monsoon rainfall breached floodwalls along northern and southern sectors.",
+  "depot": {
+    "id": "depot_1",
+    "name": "Central Emergency Operations Depot",
+    "x": 80.0,
+    "y": 250.0
+  },
+  "zones": [
+    {
+      "id": "zone_a",
+      "name": "Zone A - North Riverbank",
+      "population": 450,
+      "flood_severity": 4,
+      "injured": 28,
+      "critical_patients": 8,
+      "vulnerable_population": 95,
+      "evacuation_demand": 70,
+      "x": 190.0,
+      "y": 120.0
+    },
+    {
+      "id": "zone_b",
+      "name": "Zone B - Central District",
+      "population": 290,
+      "flood_severity": 2,
+      "injured": 8,
+      "critical_patients": 2,
+      "vulnerable_population": 35,
+      "evacuation_demand": 40,
+      "x": 280.0,
+      "y": 230.0
+    },
+    {
+      "id": "zone_c",
+      "name": "Zone C - Eastern Lowlands",
+      "population": 520,
+      "flood_severity": 3,
+      "injured": 16,
+      "critical_patients": 4,
+      "vulnerable_population": 80,
+      "evacuation_demand": 80,
+      "x": 420.0,
+      "y": 170.0
+    },
+    {
+      "id": "zone_d",
+      "name": "Zone D - Industrial South",
+      "population": 380,
+      "flood_severity": 4,
+      "injured": 22,
+      "critical_patients": 6,
+      "vulnerable_population": 65,
+      "evacuation_demand": 80,
+      "x": 220.0,
+      "y": 360.0
+    }
+  ],
+  "roads": [
+    {
+      "from_node": "depot_1",
+      "to_node": "zone_a",
+      "distance_km": 4.5,
+      "travel_minutes": 12.0,
+      "status": "open"
+    },
+    {
+      "from_node": "depot_1",
+      "to_node": "zone_b",
+      "distance_km": 5.0,
+      "travel_minutes": 10.0,
+      "status": "open"
+    },
+    {
+      "from_node": "depot_1",
+      "to_node": "zone_d",
+      "distance_km": 4.0,
+      "travel_minutes": 11.0,
+      "status": "open"
+    },
+    {
+      "from_node": "zone_a",
+      "to_node": "shelter_north",
+      "distance_km": 6.0,
+      "travel_minutes": 14.0,
+      "status": "blocked"
+    },
+    {
+      "from_node": "zone_a",
+      "to_node": "zone_b",
+      "distance_km": 3.5,
+      "travel_minutes": 8.0,
+      "status": "open"
+    },
+    {
+      "from_node": "zone_b",
+      "to_node": "zone_c",
+      "distance_km": 4.0,
+      "travel_minutes": 16.0,
+      "status": "flooded"
+    },
+    {
+      "from_node": "zone_b",
+      "to_node": "zone_d",
+      "distance_km": 3.8,
+      "travel_minutes": 9.0,
+      "status": "open"
+    },
+    {
+      "from_node": "zone_c",
+      "to_node": "shelter_north",
+      "distance_km": 3.2,
+      "travel_minutes": 7.0,
+      "status": "open"
+    },
+    {
+      "from_node": "zone_c",
+      "to_node": "shelter_south",
+      "distance_km": 5.5,
+      "travel_minutes": 13.0,
+      "status": "open"
+    },
+    {
+      "from_node": "zone_d",
+      "to_node": "shelter_south",
+      "distance_km": 4.2,
+      "travel_minutes": 10.0,
+      "status": "open"
+    },
+    {
+      "from_node": "zone_b",
+      "to_node": "shelter_south",
+      "distance_km": 6.2,
+      "travel_minutes": 15.0,
+      "status": "open"
+    }
+  ],
+  "resource_pool": {
+    "ambulances": 3,
+    "evacuation_vehicles": 5,
+    "vehicle_passenger_capacity": 20,
+    "medics": 6,
+    "shelters": [
+      {
+        "id": "shelter_north",
+        "name": "Shelter North (High School Gymnasium)",
+        "capacity": 150,
+        "current_occupancy": 0,
+        "x": 480.0,
+        "y": 70.0
+      },
+      {
+        "id": "shelter_south",
+        "name": "Shelter South (Civic Exhibition Center)",
+        "capacity": 100,
+        "current_occupancy": 0,
+        "x": 470.0,
+        "y": 380.0
+      }
+    ]
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "zone": {
+    "id": "zone_e",
+    "name": "Zone E - Highland Dam Breach Sector",
+    "population": 650,
+    "flood_severity": 5,
+    "injured": 48,
+    "critical_patients": 14,
+    "vulnerable_population": 130,
+    "evacuation_demand": 110,
+    "x": 340.0,
+    "y": 300.0
+  },
+  "new_roads": [
+    {
+      "from_node": "zone_e",
+      "to_node": "zone_b",
+      "distance_km": 3.0,
+      "travel_minutes": 7.0,
+      "status": "open"
+    },
+    {
+      "from_node": "zone_e",
+      "to_node": "zone_d",
+      "distance_km": 2.5,
+      "travel_minutes": 6.0,
+      "status": "open"
+    },
+    {
+      "from_node": "zone_e",
+      "to_node": "shelter_south",
+      "distance_km": 3.8,
+      "travel_minutes": 9.0,
+      "status": "open"
+    }
+  ]
+}
