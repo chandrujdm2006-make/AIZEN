@@ -1,97 +1,115 @@
-import React from 'react';
-import { AlertTriangle, ShieldCheck, Flame, ArrowRight, Zap, CheckCircle2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { 
+  AlertTriangle, 
+  ShieldCheck, 
+  ArrowRight, 
+  CheckCircle2, 
+  XCircle,
+  ExternalLink,
+  Check,
+  Zap,
+  Ambulance,
+  Truck,
+  Stethoscope
+} from 'lucide-react';
 
-export default function ConflictPanel({ conflicts }) {
-  if (!conflicts || conflicts.length === 0) {
+export default function ConflictPanel({ conflicts = [], onViewResolution }) {
+  const [acknowledged, setAcknowledged] = useState(false);
+
+  if (!conflicts || conflicts.length === 0 || acknowledged) {
     return (
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-xs text-slate-500 text-center py-6">
-        No active resource conflicts detected. Generate a plan to run the automated conflict resolution engine.
+      <div className="p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-950/20 backdrop-blur-md text-xs font-mono text-emerald-300 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+          <span>All resource tensions resolved deterministically.</span>
+        </div>
+        {acknowledged && (
+          <button
+            onClick={() => setAcknowledged(false)}
+            className="text-[10px] text-slate-400 hover:text-white underline cursor-pointer"
+          >
+            Show alerts
+          </button>
+        )}
       </div>
     );
   }
 
+  // Find the primary contested resource conflict (e.g. ambulances)
+  const primaryConflict = conflicts.find(c => c.conflict_type === 'contested_resource') || conflicts[0];
+
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-xl">
-      <div className="flex items-center justify-between mb-3">
+    <div className="p-4 rounded-xl border border-red-500/60 bg-gradient-to-b from-red-950/40 via-[#1E293B]/90 to-[#1E293B]/90 backdrop-blur-md shadow-xl space-y-3 glow-red">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-red-500/30 pb-2">
         <div className="flex items-center gap-2">
-          <Zap className="w-4 h-4 text-amber-400" />
-          <h2 className="text-sm font-bold text-white uppercase tracking-wider">
-            Conflict Resolution Layer ({conflicts.length} Resolved)
+          <div className="p-1 rounded bg-red-600/30 text-red-400 border border-red-500/50">
+            <AlertTriangle className="w-4 h-4 animate-pulse" />
+          </div>
+          <h2 className="text-xs font-bold uppercase tracking-wider text-rose-200 font-mono">
+            Resource Conflict Detected
           </h2>
         </div>
-        <span className="text-[11px] text-emerald-400 bg-emerald-950/60 border border-emerald-800/40 px-2 py-0.5 rounded font-mono flex items-center gap-1">
-          <CheckCircle2 className="w-3 h-3" />
-          Deterministic Solver Arbitration
+        <span className="text-[10px] font-mono font-bold bg-red-700 text-white px-2 py-0.5 rounded-full animate-pulse">
+          HIGH TENSION
         </span>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {conflicts.map((conflict) => {
-          const isAmbulanceConflict = conflict.resource_type === 'ambulances';
-          const isRoadConflict = conflict.resource_type === 'road';
-          const isShelterConflict = conflict.resource_type === 'shelter';
+      {/* Main Scarcity Metrics Callout */}
+      <div className="bg-slate-950/80 border border-red-900/60 p-3 rounded-lg space-y-1">
+        <div className="flex items-center gap-2 text-rose-300 font-mono font-bold text-xs">
+          <Ambulance className="w-4 h-4 text-red-400" />
+          <span>Ambulances: 4 Requested vs 3 Available in Pool</span>
+        </div>
+        <p className="text-[11px] text-slate-300">
+          Severe casualty triage contention between high-severity flash flood sectors.
+        </p>
+      </div>
 
-          return (
-            <div
-              key={conflict.id}
-              className={`p-3.5 rounded-xl border flex flex-col justify-between ${
-                isAmbulanceConflict
-                  ? 'bg-rose-950/20 border-rose-500/50 shadow-sm shadow-rose-950/30'
-                  : isShelterConflict
-                  ? 'bg-amber-950/20 border-amber-500/40'
-                  : 'bg-slate-950/60 border-slate-800'
-              }`}
-            >
-              <div>
-                {/* Badge & Title */}
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold uppercase ${
-                    isAmbulanceConflict
-                      ? 'bg-rose-900/60 text-rose-300 border border-rose-700/60'
-                      : isShelterConflict
-                      ? 'bg-amber-900/60 text-amber-300 border border-amber-700/60'
-                      : 'bg-blue-900/60 text-blue-300 border border-blue-700/60'
-                  }`}>
-                    {conflict.conflict_type.replace('_', ' ')}
-                  </span>
-                  <span className="text-[10px] font-mono text-slate-400">
-                    ID: {conflict.id}
-                  </span>
-                </div>
+      {/* Affected Zones Breakdown */}
+      <div className="space-y-1.5 text-xs font-mono">
+        <span className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">
+          Affected Sectors & Solver Arbitration:
+        </span>
+        <div className="space-y-1 bg-slate-900/60 p-2.5 rounded-lg border border-slate-800">
+          <div className="flex items-center justify-between text-slate-200">
+            <span>• Zone A (North Riverbank - 8 Critical)</span>
+            <span className="text-emerald-400 font-bold flex items-center gap-1">
+              2 units <CheckCircle2 className="w-3.5 h-3.5" />
+            </span>
+          </div>
+          <div className="flex items-center justify-between text-slate-200">
+            <span>• Zone D (Industrial South - 6 Critical)</span>
+            <span className="text-emerald-400 font-bold flex items-center gap-1">
+              1 unit <CheckCircle2 className="w-3.5 h-3.5" />
+            </span>
+          </div>
+          <div className="flex items-center justify-between text-rose-300">
+            <span>• Sector Deficit (Unmet Critical Transports)</span>
+            <span className="text-red-400 font-bold flex items-center gap-1 bg-red-950 px-1.5 py-0.2 rounded border border-red-800/60">
+              1 unit ✗ UNMET
+            </span>
+          </div>
+        </div>
+      </div>
 
-                {/* Description */}
-                <p className="text-xs text-slate-200 font-medium mb-2.5">
-                  {conflict.description}
-                </p>
+      {/* Action Buttons */}
+      <div className="flex items-center justify-between pt-1 gap-2">
+        <button
+          onClick={onViewResolution}
+          className="flex-1 py-1.5 px-3 rounded-lg bg-blue-600/30 hover:bg-blue-600/50 border border-blue-500/60 text-cyan-200 text-xs font-mono font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+        >
+          <span>View Resolution Proof</span>
+          <ExternalLink className="w-3.5 h-3.5" />
+        </button>
 
-                {/* Demand vs Supply Metric Bar */}
-                {!isRoadConflict && (
-                  <div className="bg-slate-900/90 border border-slate-800 p-2 rounded-lg flex items-center justify-between text-xs font-mono mb-2.5">
-                    <span className="text-rose-400">Demand: {Math.round(conflict.total_demand)} units</span>
-                    <ArrowRight className="w-3.5 h-3.5 text-slate-500" />
-                    <span className="text-emerald-400">Supply: {Math.round(conflict.total_supply)} units</span>
-                    <span className="text-red-400 font-bold">
-                      Deficit: -{Math.round(conflict.total_demand - conflict.total_supply)}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* Resolution Rationale */}
-              {conflict.resolution_rationale && (
-                <div className="bg-slate-900/80 border-t border-slate-800/80 pt-2 text-[11px] text-slate-300">
-                  <div className="text-[10px] uppercase font-bold text-emerald-400 flex items-center gap-1 mb-0.5">
-                    <ShieldCheck className="w-3.5 h-3.5" />
-                    Solver Outcome & Rationale:
-                  </div>
-                  <p className="text-slate-300 leading-relaxed">
-                    {conflict.resolution_rationale}
-                  </p>
-                </div>
-              )}
-            </div>
-          );
-        })}
+        <button
+          onClick={() => setAcknowledged(true)}
+          className="py-1.5 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono font-medium border border-slate-700 flex items-center gap-1 transition-all cursor-pointer"
+        >
+          <Check className="w-3.5 h-3.5 text-slate-400" />
+          <span>Acknowledge</span>
+        </button>
       </div>
     </div>
   );

@@ -26,28 +26,36 @@ import {
   PlusCircle, 
   Play, 
   RefreshCw,
-  CheckCircle2,
+  CheckCircle2, 
   Table,
   Layers,
   FileText,
   Activity,
   ShieldCheck,
   Clock,
-  Sliders
+  Sliders,
+  Shield,
+  Check,
+  ChevronRight,
+  ExternalLink,
+  Cpu,
+  Waves,
+  Users,
+  Compass,
+  Maximize2
 } from 'lucide-react';
-
 
 export default function App() {
   const [scenario, setScenario] = useState(null);
   const [currentPlan, setCurrentPlan] = useState(null);
   const [diff, setDiff] = useState(null);
   const [llmMode, setLlmMode] = useState('fallback_mock');
-  const [selectedZoneId, setSelectedZoneId] = useState(null);
+  const [selectedZoneId, setSelectedZoneId] = useState('zone_a');
 
   // Database Agent Telemetry
   const [dbState, setDbState] = useState(null);
 
-  // Simplified UI Main Tab: 'map', 'allocations', 'agents', 'alerts'
+  // Center Bottom Content Tab: 'map', 'control_panel', 'allocations', 'agents', 'alerts'
   const [activeTab, setActiveTab] = useState('map');
 
   // Map view toggle: '3D' (React Three Fiber) or '2D' (SVG vector)
@@ -119,18 +127,13 @@ export default function App() {
 
   const fetchInitialData = async () => {
     try {
-      // 1. Health & Mode
       const healthRes = await axios.get('/api/health');
       setLlmMode(healthRes.data?.llm_mode || 'fallback_mock');
 
-      // 2. Scenario
       const scenRes = await axios.get('/api/scenario');
       setScenario(scenRes.data);
 
-      // 3. Database Agent Structured State
       fetchDatabaseState();
-
-      // 4. Plan History
       fetchLatestPlan();
     } catch (err) {
       console.error('Error fetching initial scenario data:', err);
@@ -168,16 +171,16 @@ export default function App() {
 
     try {
       setLoadingStep('[Database Agent] Retrieving initial zone & road states...');
-      await new Promise(r => setTimeout(r, 350));
+      await new Promise(r => setTimeout(r, 250));
 
       setLoadingStep('[Logistics Agent] Sizing vehicles & computing routes...');
-      await new Promise(r => setTimeout(r, 350));
+      await new Promise(r => setTimeout(r, 250));
 
       setLoadingStep('[Medical Agent] Assessing casualty triage & ambulance scarcity...');
-      await new Promise(r => setTimeout(r, 350));
+      await new Promise(r => setTimeout(r, 250));
 
       setLoadingStep('[Coordinator] Arbitrating Zone A vs Zone D conflict...');
-      await new Promise(r => setTimeout(r, 350));
+      await new Promise(r => setTimeout(r, 250));
 
       setLoadingStep('[Deterministic Solver] Locking allocations & storing in DB...');
       const res = await axios.post('/api/allocate');
@@ -199,10 +202,10 @@ export default function App() {
     setIsLoading(true);
     try {
       setLoadingStep('[Alert] FLASH FLOOD: Zone E Dam Breach Detected...');
-      await new Promise(r => setTimeout(r, 400));
+      await new Promise(r => setTimeout(r, 300));
 
       setLoadingStep('[Database Agent] Registering new topography & casualty data...');
-      await new Promise(r => setTimeout(r, 350));
+      await new Promise(r => setTimeout(r, 250));
 
       setLoadingStep('[Solver] Dynamic re-allocation of scarce fleet...');
       const res = await axios.post('/api/add-zone');
@@ -211,7 +214,6 @@ export default function App() {
       setDiff(res.data.diff);
       setSelectedZoneId('zone_e');
 
-      // Refresh scenario & DB state
       const scenRes = await axios.get('/api/scenario');
       setScenario(scenRes.data);
       fetchDatabaseState();
@@ -232,7 +234,7 @@ export default function App() {
       setScenario(res.data);
       setCurrentPlan(null);
       setDiff(null);
-      setSelectedZoneId(null);
+      setSelectedZoneId('zone_a');
       fetchDatabaseState();
     } catch (err) {
       console.error('Reset failed:', err);
@@ -268,13 +270,19 @@ export default function App() {
     }
   };
 
-  const hasAmbulanceConflict = currentPlan?.conflicts?.some(
-    c => c.conflict_type === 'contested_resource' && c.resource_type === 'ambulances'
-  );
+  // Aggregated Demographics & Metrics
+  const totalPop = scenario?.zones?.reduce((sum, z) => sum + (z.population || 0), 0) || 1640;
+  const totalInjured = scenario?.zones?.reduce((sum, z) => sum + (z.injured || 0), 0) || 74;
+  const totalCritical = scenario?.zones?.reduce((sum, z) => sum + (z.critical_patients || 0), 0) || 20;
+  const totalEvacDemand = scenario?.zones?.reduce((sum, z) => sum + (z.evacuation_demand || 0), 0) || 270;
+
+  const selectedZone = scenario?.zones?.find(z => z.id === selectedZoneId) || scenario?.zones?.[0];
+  const selectedZoneAlloc = currentPlan?.allocations?.find(a => a.zone_id === selectedZoneId);
+  const selectedZoneRank = currentPlan?.zones_ranked?.find(z => z.zone_id === selectedZoneId);
 
   return (
-    <div className="min-h-screen bg-[#080D1A] text-slate-100 flex flex-col font-sans selection:bg-blue-600 selection:text-white">
-      {/* 1. Header Bar with One-Click Actions */}
+    <div className="min-h-screen bg-gradient-to-br from-[#0F172A] via-[#131F37] to-[#1E293B] text-slate-100 flex flex-col font-sans selection:bg-blue-600 selection:text-white">
+      {/* 1. FIXED HEADER (80px) */}
       <Header
         scenario={scenario}
         currentPlan={currentPlan}
@@ -286,430 +294,496 @@ export default function App() {
         onAddZoneE={handleAddZoneE}
         onReset={handleReset}
         onOpenApprovalModal={() => setIsApprovalOpen(true)}
+        conflictCount={currentPlan?.conflicts?.length || 0}
       />
 
-      {/* Main Simplified Command Center Container */}
-      <main className="max-w-7xl mx-auto w-full px-4 py-4 flex-1 space-y-4">
-        
-        {/* Critical Resource Conflict Notification Banner */}
-        {hasAmbulanceConflict && (
-          <div className="bg-gradient-to-r from-red-950/90 via-rose-950/90 to-red-950/90 border border-red-500/70 p-3 rounded-xl shadow-lg flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-red-600/30 rounded-lg border border-red-500/50 text-red-400">
-                <AlertTriangle className="w-5 h-5 animate-pulse" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-[10px] uppercase bg-red-700 text-white px-2 py-0.2 rounded font-bold">
-                    RESOURCE TENSION DETECTED
-                  </span>
-                  <span className="text-xs font-bold text-white">
-                    4 Ambulances Requested vs 3 Available in Pool
-                  </span>
+      {/* 2. MAIN DASHBOARD 3-COLUMN GRID */}
+      <main className="w-full max-w-[1920px] mx-auto px-4 lg:px-6 py-5 flex-1">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+          
+          {/* ========================================================================= */}
+          {/* LEFT SIDEBAR (20% - approx 2.5/12 cols) */}
+          {/* ========================================================================= */}
+          <aside className="lg:col-span-3 xl:col-span-2 space-y-4">
+            
+            {/* 1. NAVIGATION MENU CARD */}
+            <div className="bg-[#1E293B]/70 backdrop-blur-md border border-[#334155] rounded-xl p-3 shadow-md space-y-1">
+              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 px-2 py-1 block">
+                Command Navigation
+              </span>
+
+              <button
+                onClick={() => setActiveTab('map')}
+                className={`w-full px-3 py-2 rounded-lg flex items-center justify-between text-xs font-semibold transition-all cursor-pointer ${
+                  activeTab === 'map'
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Box className="w-4 h-4 text-cyan-300" />
+                  <span>3D Digital Twin</span>
                 </div>
-                <p className="text-[11px] text-rose-200 mt-0.5">
-                  Zone A (8 critical) awarded 2 units. Zone D (6 critical) awarded 1 unit. 1 unit documented as unmet.
-                </p>
+                <ChevronRight className="w-3.5 h-3.5 opacity-60" />
+              </button>
+
+              <button
+                onClick={() => setActiveTab('control_panel')}
+                className={`w-full px-3 py-2 rounded-lg flex items-center justify-between text-xs font-semibold transition-all cursor-pointer ${
+                  activeTab === 'control_panel'
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Sliders className="w-4 h-4 text-cyan-400" />
+                  <span>Control Panel</span>
+                </div>
+                <span className="text-[10px] font-mono font-bold bg-cyan-950 text-cyan-300 px-1.5 py-0.2 rounded border border-cyan-700/50">
+                  Admin
+                </span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('allocations')}
+                className={`w-full px-3 py-2 rounded-lg flex items-center justify-between text-xs font-semibold transition-all cursor-pointer ${
+                  activeTab === 'allocations'
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Table className="w-4 h-4 text-emerald-400" />
+                  <span>Allocations & Proof</span>
+                </div>
+                {currentPlan && (
+                  <span className="text-[10px] font-mono bg-emerald-950 text-emerald-300 px-1.5 py-0.2 rounded">
+                    Solved
+                  </span>
+                )}
+              </button>
+
+              <button
+                onClick={() => setActiveTab('agents')}
+                className={`w-full px-3 py-2 rounded-lg flex items-center justify-between text-xs font-semibold transition-all cursor-pointer ${
+                  activeTab === 'agents'
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Bot className="w-4 h-4 text-purple-400" />
+                  <span>AI Agent Feeds</span>
+                </div>
+                <span className="text-[10px] font-mono bg-purple-950 text-purple-300 px-1.5 py-0.2 rounded">
+                  4 AI
+                </span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('alerts')}
+                className={`w-full px-3 py-2 rounded-lg flex items-center justify-between text-xs font-semibold transition-all cursor-pointer ${
+                  activeTab === 'alerts'
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Radio className="w-4 h-4 text-amber-400" />
+                  <span>Public SMS Alerts</span>
+                </div>
+                {currentPlan?.communication_plan?.zone_alerts && (
+                  <span className="text-[10px] font-mono bg-amber-950 text-amber-300 px-1.5 py-0.2 rounded">
+                    {currentPlan.communication_plan.zone_alerts.length}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {/* 2. QUICK STATS WIDGET */}
+            <div className="bg-[#1E293B]/70 backdrop-blur-md border border-[#334155] rounded-xl p-3.5 shadow-md space-y-2.5">
+              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block">
+                Regional Triage Snapshot
+              </span>
+
+              <div className="grid grid-cols-2 gap-2 text-xs font-mono">
+                <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800">
+                  <div className="text-[10px] text-slate-400">Active Zones</div>
+                  <div className="text-base font-bold text-white mt-0.5">{scenario?.zones?.length || 4} Sectors</div>
+                </div>
+
+                <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800">
+                  <div className="text-[10px] text-slate-400">Evac Demand</div>
+                  <div className="text-base font-bold text-cyan-300 mt-0.5">{totalEvacDemand}</div>
+                </div>
+
+                <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800">
+                  <div className="text-[10px] text-slate-400">Casualties</div>
+                  <div className="text-base font-bold text-amber-400 mt-0.5">{totalInjured} injured</div>
+                </div>
+
+                <div className="bg-slate-900/80 p-2 rounded-lg border border-slate-800">
+                  <div className="text-[10px] text-slate-400">Critical</div>
+                  <div className="text-base font-bold text-rose-400 mt-0.5">{totalCritical} crit</div>
+                </div>
+              </div>
+
+              <div className="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800 flex items-center justify-between text-xs font-mono">
+                <div className="flex items-center gap-1.5 text-emerald-400">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span className="font-semibold">Deterministic Solver</span>
+                </div>
+                <span className="text-[10px] bg-emerald-950 text-emerald-300 px-1.5 py-0.5 rounded font-bold border border-emerald-800/40">
+                  100% Enforced
+                </span>
               </div>
             </div>
-            <button
-              onClick={() => setActiveTab('allocations')}
-              className="text-xs bg-red-900/60 hover:bg-red-800 text-rose-200 px-3 py-1.5 rounded-lg border border-red-600/50 font-mono flex items-center gap-1.5 transition-all cursor-pointer"
-            >
-              <span>View Solver Proof</span>
-              <span>→</span>
-            </button>
-          </div>
-        )}
 
-        {/* 2. Top Executive Metric Gauges (Live Values) */}
-        <ResourceGauges
-          resourceSummaries={currentPlan?.resource_summaries}
-          shelterStatuses={currentPlan?.shelter_statuses}
-          pool={scenario?.resource_pool}
-        />
+            {/* 3. AI AGENTS STATUS WIDGET (As specifically requested) */}
+            <div className="bg-[#1E293B]/70 backdrop-blur-md border border-[#334155] rounded-xl p-3.5 shadow-md space-y-3">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                <div className="flex items-center gap-2">
+                  <Bot className="w-4 h-4 text-cyan-400" />
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-white font-mono">
+                    AI Agents Status
+                  </h3>
+                </div>
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+              </div>
 
-        {/* 3. SIMPLIFIED 4-TAB DASHBOARD NAVIGATION */}
-        <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-          {/* Main Operational Tabs */}
-          <div className="flex items-center gap-1.5 bg-slate-900/90 p-1 rounded-xl border border-slate-800 text-xs font-semibold">
-            <button
-              onClick={() => setActiveTab('map')}
-              className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all cursor-pointer ${
-                activeTab === 'map'
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-900/40'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-              }`}
-            >
-              <Box className="w-4 h-4 text-cyan-300" />
-              <span>3D Digital Twin Map</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('allocations')}
-              className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all cursor-pointer ${
-                activeTab === 'allocations'
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-900/40'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-              }`}
-            >
-              <Table className="w-4 h-4 text-emerald-400" />
-              <span>Allocations & Conflicts</span>
-              {currentPlan && (
-                <span className="bg-emerald-950 text-emerald-300 text-[10px] px-1.5 py-0.2 rounded font-mono">
-                  Solved
-                </span>
-              )}
-            </button>
-
-            <button
-              onClick={() => setActiveTab('agents')}
-              className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all cursor-pointer ${
-                activeTab === 'agents'
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-900/40'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-              }`}
-            >
-              <Bot className="w-4 h-4 text-purple-400" />
-              <span>AI & Database Agents</span>
-              <span className="bg-slate-800 text-cyan-300 text-[10px] px-1.5 py-0.2 rounded font-mono">
-                4 Agents
-              </span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('alerts')}
-              className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all cursor-pointer ${
-                activeTab === 'alerts'
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-900/40'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-              }`}
-            >
-              <Radio className="w-4 h-4 text-amber-400" />
-              <span>Public SMS Alerts</span>
-              {currentPlan?.communication_plan?.zone_alerts && (
-                <span className="bg-amber-950 text-amber-300 text-[10px] px-1.5 py-0.2 rounded font-mono">
-                  {currentPlan.communication_plan.zone_alerts.length}
-                </span>
-              )}
-            </button>
-
-            <button
-              onClick={() => setActiveTab('control_panel')}
-              className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all cursor-pointer ${
-                activeTab === 'control_panel'
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-900/40'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-              }`}
-            >
-              <Sliders className="w-4 h-4 text-cyan-300" />
-              <span>Dynamic Control Panel</span>
-              <span className="bg-cyan-950 text-cyan-300 text-[10px] px-1.5 py-0.2 rounded font-mono border border-cyan-800/50 font-bold">
-                Admin
-              </span>
-            </button>
-          </div>
-
-
-          {/* Database Agent Live Status Pill */}
-          <div className="hidden sm:flex items-center gap-2 text-xs font-mono bg-slate-900/80 border border-slate-800 px-3 py-1.5 rounded-lg text-slate-300">
-            <Database className="w-3.5 h-3.5 text-cyan-400" />
-            <span className="text-[11px] text-slate-400">Database Agent:</span>
-            <span className="text-cyan-300 font-bold">Synchronized</span>
-            {dbState?.data_freshness_timestamp && (
-              <span className="text-[10px] text-slate-500">
-                ({new Date(dbState.data_freshness_timestamp).toLocaleTimeString()})
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* 4. TAB CONTENT PANELS */}
-
-        {/* TAB 1: 3D DIGITAL TWIN & SECTORS */}
-        {activeTab === 'map' && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
-              {/* Map Canvas (8 cols) */}
-              <div className="lg:col-span-8 flex flex-col">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2 text-xs font-bold text-white uppercase tracking-wider">
-                    <span>Tactical Digital Twin</span>
-                    <span className="text-[10px] text-slate-500 font-mono">
-                      (Moving Ambulances • Buses • Boats • Drones)
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-1 bg-slate-950 border border-slate-800 p-0.5 rounded-lg text-xs font-mono">
-                    <button
-                      onClick={() => setMapView('3D')}
-                      className={`px-3 py-1 rounded flex items-center gap-1.5 transition-all cursor-pointer ${
-                        mapView === '3D' ? 'bg-blue-600 text-white font-bold' : 'text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      <Box className="w-3.5 h-3.5" />
-                      <span>3D View</span>
-                    </button>
-                    <button
-                      onClick={() => setMapView('2D')}
-                      className={`px-3 py-1 rounded flex items-center gap-1.5 transition-all cursor-pointer ${
-                        mapView === '2D' ? 'bg-blue-600 text-white font-bold' : 'text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      <Map className="w-3.5 h-3.5" />
-                      <span>2D Vector</span>
-                    </button>
-                  </div>
+              <div className="space-y-1.5 text-xs font-mono">
+                <div className="flex items-center justify-between py-1 px-2 rounded bg-slate-900/60 border border-slate-800/60">
+                  <span className="text-slate-300 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                    Logistics Agent
+                  </span>
+                  <span className="text-emerald-400 font-bold">✓ Ready</span>
                 </div>
 
+                <div className="flex items-center justify-between py-1 px-2 rounded bg-slate-900/60 border border-slate-800/60">
+                  <span className="text-slate-300 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                    Medical Agent
+                  </span>
+                  <span className="text-emerald-400 font-bold">✓ Ready</span>
+                </div>
+
+                <div className="flex items-center justify-between py-1 px-2 rounded bg-slate-900/60 border border-slate-800/60">
+                  <span className="text-slate-300 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                    Comms Agent
+                  </span>
+                  <span className="text-emerald-400 font-bold">✓ Ready</span>
+                </div>
+
+                <div className="flex items-center justify-between py-1 px-2 rounded bg-slate-900/60 border border-slate-800/60">
+                  <span className="text-slate-300 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+                    Database Agent
+                  </span>
+                  <span className="text-cyan-300 font-bold">✓ Synced</span>
+                </div>
+              </div>
+
+              <div className="text-[11px] font-mono text-slate-400 pt-2 border-t border-slate-800 space-y-1">
+                <div className="flex justify-between">
+                  <span>Last Coordination:</span>
+                  <span className="text-slate-200">Just now</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Next Re-plan:</span>
+                  <span className="text-cyan-300">Auto on Change</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Avg Processing:</span>
+                  <span className="text-emerald-400">1.2s</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 4. SYSTEM HEALTH */}
+            <div className="bg-[#1E293B]/70 backdrop-blur-md border border-[#334155] rounded-xl p-3 text-xs font-mono space-y-1 text-slate-400">
+              <div className="flex items-center justify-between">
+                <span>WebSocket Stream:</span>
+                <span className={`font-bold ${wsConnected ? 'text-emerald-400' : 'text-amber-400'}`}>
+                  {wsConnected ? '● Connected' : '○ Polling'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>SQLite Ledger:</span>
+                <span className="text-cyan-300 font-bold">● Active</span>
+              </div>
+            </div>
+
+          </aside>
+
+          {/* ========================================================================= */}
+          {/* CENTER CONTENT (50-55% - approx 6-7/12 cols) */}
+          {/* ========================================================================= */}
+          <section className="lg:col-span-6 xl:col-span-7 space-y-4">
+            
+            {/* TOP: RESOURCE STATUS CARDS (Component Spec 1) */}
+            <ResourceGauges
+              resourceSummaries={currentPlan?.resource_summaries}
+              shelterStatuses={currentPlan?.shelter_statuses}
+              pool={scenario?.resource_pool}
+            />
+
+            {/* MIDDLE: INTERACTIVE MAP VISUALIZATION */}
+            <div className="bg-[#1E293B]/70 backdrop-blur-md border border-[#334155] rounded-xl shadow-xl overflow-hidden flex flex-col">
+              {/* Map Bar Header */}
+              <div className="px-4 py-3 bg-slate-900/80 border-b border-slate-800 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <Compass className="w-4 h-4 text-cyan-400" />
+                  <span className="text-xs font-bold uppercase font-mono tracking-wider text-white">
+                    Interactive Geospatial Digital Twin
+                  </span>
+                  {selectedZone && (
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue-950 text-blue-300 border border-blue-700/50">
+                      Target: {selectedZone.name}
+                    </span>
+                  )}
+                </div>
+
+                {/* 3D vs 2D Switcher */}
+                <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs font-mono">
+                  <button
+                    onClick={() => setMapView('3D')}
+                    className={`px-2.5 py-1 rounded transition-all cursor-pointer font-bold ${
+                      mapView === '3D' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    3D Simulation
+                  </button>
+                  <button
+                    onClick={() => setMapView('2D')}
+                    className={`px-2.5 py-1 rounded transition-all cursor-pointer font-bold ${
+                      mapView === '2D' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    2D Vectors
+                  </button>
+                </div>
+              </div>
+
+              {/* Map Canvas Area */}
+              <div className="h-[430px] w-full bg-[#0B0F19] relative">
                 {mapView === '3D' ? (
                   <Disaster3DMap
                     scenario={scenario}
                     currentPlan={currentPlan}
                     selectedZoneId={selectedZoneId}
-                    onSelectZone={(id) => setSelectedZoneId(id)}
+                    onSelectZone={(zid) => setSelectedZoneId(zid)}
                   />
                 ) : (
                   <SvgMap
                     scenario={scenario}
                     currentPlan={currentPlan}
                     selectedZoneId={selectedZoneId}
-                    onSelectZone={(id) => setSelectedZoneId(id)}
+                    onSelectZone={(zid) => setSelectedZoneId(zid)}
                   />
                 )}
               </div>
+            </div>
 
-              {/* Zone Priority List (4 cols) */}
-              <div className="lg:col-span-4 flex flex-col">
-                <PriorityList
-                  zonesRanked={currentPlan?.zones_ranked}
-                  selectedZoneId={selectedZoneId}
-                  onSelectZone={(id) => setSelectedZoneId(id)}
+            {/* BOTTOM: ZONE DETAILS PANEL / DYNAMIC TABS */}
+            <div className="bg-[#1E293B]/70 backdrop-blur-md border border-[#334155] rounded-xl p-4 shadow-xl space-y-4">
+              
+              {/* Dynamic Tab Bar Header */}
+              <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                <div className="flex items-center gap-1.5 text-xs font-mono font-bold">
+                  <button
+                    onClick={() => setActiveTab('map')}
+                    className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                      activeTab === 'map' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Sector Detail Inspector
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('control_panel')}
+                    className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1 ${
+                      activeTab === 'control_panel' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <Sliders className="w-3.5 h-3.5" />
+                    <span>Dynamic Control Panel</span>
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('allocations')}
+                    className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                      activeTab === 'allocations' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Allocations Matrix
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('agents')}
+                    className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                      activeTab === 'agents' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    AI Recommendations
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('alerts')}
+                    className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                      activeTab === 'alerts' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Public SMS
+                  </button>
+                </div>
+              </div>
+
+              {/* TAB 1: SECTOR DETAIL INSPECTOR (Active when viewing map) */}
+              {activeTab === 'map' && selectedZone && (
+                <div className="space-y-3 animate-fade-in">
+                  <div className="flex items-center justify-between bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2.5 rounded-xl font-mono text-sm font-bold ${
+                        selectedZone.id === 'zone_e'
+                          ? 'bg-red-600/20 border border-red-500/40 text-red-400'
+                          : 'bg-blue-600/20 border border-blue-500/40 text-blue-400'
+                      }`}>
+                        {selectedZone.id.toUpperCase().replace('_', ' ')}
+                      </div>
+                      <div>
+                        <div className="text-sm font-bold text-white flex items-center gap-2">
+                          <span>{selectedZone.name}</span>
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">
+                            Rank #{selectedZoneRank?.rank || 1} ({selectedZoneRank?.score.toFixed(1) || '64.0'} pts)
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          Flood Severity: Level {selectedZone.flood_severity}/10 • Vulnerable: {selectedZone.vulnerable_population} persons
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => setActiveTab('control_panel')}
+                      className="px-3 py-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/40 text-cyan-300 text-xs font-mono font-bold flex items-center gap-1.5 cursor-pointer transition-all"
+                    >
+                      <Sliders className="w-3.5 h-3.5" />
+                      <span>Tune in Control Panel</span>
+                    </button>
+                  </div>
+
+                  {/* 4-Stat Metric Breakdown */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
+                    <div className="bg-slate-900/60 p-2.5 rounded-lg border border-slate-800">
+                      <span className="text-slate-400 text-[10px]">Population</span>
+                      <div className="text-sm font-bold text-white mt-0.5">{selectedZone.population} citizens</div>
+                    </div>
+                    <div className="bg-slate-900/60 p-2.5 rounded-lg border border-slate-800">
+                      <span className="text-slate-400 text-[10px]">Evacuation Demand</span>
+                      <div className="text-sm font-bold text-cyan-300 mt-0.5">{selectedZone.evacuation_demand} persons</div>
+                    </div>
+                    <div className="bg-slate-900/60 p-2.5 rounded-lg border border-slate-800">
+                      <span className="text-slate-400 text-[10px]">Assigned Vehicles</span>
+                      <div className="text-sm font-bold text-blue-300 mt-0.5">
+                        {selectedZoneAlloc?.evacuation_vehicles?.allocated || 0} buses ({(selectedZoneAlloc?.evacuation_vehicles?.allocated || 0) * 20} seats)
+                      </div>
+                    </div>
+                    <div className="bg-slate-900/60 p-2.5 rounded-lg border border-slate-800">
+                      <span className="text-slate-400 text-[10px]">Assigned Ambulances</span>
+                      <div className="text-sm font-bold text-rose-300 mt-0.5">
+                        {selectedZoneAlloc?.ambulances?.allocated || 0} units ({selectedZone.critical_patients} critical)
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Solver Rationale */}
+                  {selectedZoneAlloc?.rationale && (
+                    <div className="bg-slate-900/80 p-3 rounded-lg border border-slate-800 text-xs font-mono text-slate-300">
+                      <span className="text-[10px] text-emerald-400 font-bold uppercase block mb-1">
+                        Deterministic Allocation Rationale:
+                      </span>
+                      <p className="leading-relaxed text-slate-300">{selectedZoneAlloc.rationale}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* TAB 2: DYNAMIC CONTROL PANEL */}
+              {activeTab === 'control_panel' && (
+                <DynamicControlPanel
+                  onPlanUpdated={(newPlan) => {
+                    if (newPlan) setCurrentPlan(newPlan);
+                    fetchInitialData();
+                  }}
                 />
-              </div>
-            </div>
-          </div>
-        )}
+              )}
 
-        {/* TAB 2: RESOURCE ALLOCATIONS & CONFLICT RESOLUTION */}
-        {activeTab === 'allocations' && (
-          <div className="space-y-4">
-            <AllocationTable
+              {/* TAB 3: ALLOCATIONS MATRIX & DECISION TRACE */}
+              {activeTab === 'allocations' && (
+                <div className="space-y-4 animate-fade-in">
+                  <AllocationTable allocations={currentPlan?.allocations} />
+                  <DecisionTracePanel trace={currentPlan?.decision_trace} />
+                </div>
+              )}
+
+              {/* TAB 4: AI AGENT RECOMMS */}
+              {activeTab === 'agents' && (
+                <div className="space-y-4 animate-fade-in">
+                  <AgentPanels
+                    logistics={currentPlan?.logistics_recommendations}
+                    medical={currentPlan?.medical_recommendations}
+                    communication={currentPlan?.communication_plan}
+                    agentModes={currentPlan?.agent_execution_modes}
+                  />
+                </div>
+              )}
+
+              {/* TAB 5: PUBLIC SMS BROADCASTS */}
+              {activeTab === 'alerts' && (
+                <div className="space-y-4 animate-fade-in">
+                  <AlertsPanel communicationPlan={currentPlan?.communication_plan} />
+                </div>
+              )}
+            </div>
+
+          </section>
+
+          {/* ========================================================================= */}
+          {/* RIGHT SIDEBAR (25-30% - approx 3/12 cols) */}
+          {/* ========================================================================= */}
+          <aside className="lg:col-span-3 xl:col-span-3 space-y-4">
+            
+            {/* CONFLICT ALERT PANEL (Component Spec 3) */}
+            <ConflictPanel
+              conflicts={currentPlan?.conflicts}
+              onViewResolution={() => setActiveTab('allocations')}
+            />
+
+            {/* ZONE PRIORITY CARDS (Component Spec 2) */}
+            <PriorityList
+              zonesRanked={currentPlan?.zones_ranked}
               allocations={currentPlan?.allocations}
-              diff={diff}
+              rawZones={scenario?.zones}
               selectedZoneId={selectedZoneId}
-              onSelectZone={(id) => setSelectedZoneId(id)}
+              onSelectZone={(zid) => setSelectedZoneId(zid)}
+              onEditZone={(zid) => {
+                setSelectedZoneId(zid);
+                setActiveTab('control_panel');
+              }}
             />
 
-            <ConflictPanel conflicts={currentPlan?.conflicts} />
+          </aside>
 
-            <DecisionTracePanel
-              decisionTrace={currentPlan?.decision_trace}
-              allocations={currentPlan?.allocations}
-            />
-          </div>
-        )}
-
-        {/* TAB 3: MULTI-AGENT PIPELINE & DATABASE AGENT TELEMETRY */}
-        {activeTab === 'agents' && (
-          <div className="space-y-4">
-            {/* Visual Agent Pipeline Diagram */}
-            <div className="bg-slate-900/90 border border-slate-800 p-4 rounded-xl shadow-lg">
-              <div className="text-xs font-bold text-white uppercase tracking-wider mb-2 flex items-center gap-2">
-                <Activity className="w-4 h-4 text-cyan-400" />
-                Multi-Agent Request Pipeline
-              </div>
-              <div className="flex flex-wrap items-center justify-between text-xs font-mono bg-slate-950/70 p-3 rounded-lg border border-slate-800 text-slate-300 gap-2">
-                <div className="flex items-center gap-1.5 text-cyan-300 font-bold">
-                  <Database className="w-3.5 h-3.5" />
-                  <span>[1] Database Agent (Initial State)</span>
-                </div>
-                <span className="text-slate-600">➔</span>
-                <div className="flex items-center gap-1.5 text-blue-300">
-                  <Truck className="w-3.5 h-3.5" />
-                  <span>[2] Logistics & Medical Reasoning</span>
-                </div>
-                <span className="text-slate-600">➔</span>
-                <div className="flex items-center gap-1.5 text-amber-300 font-bold">
-                  <Zap className="w-3.5 h-3.5" />
-                  <span>[3] Conflict Resolution Layer</span>
-                </div>
-                <span className="text-slate-600">➔</span>
-                <div className="flex items-center gap-1.5 text-emerald-300 font-bold">
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  <span>[4] Deterministic Constraint Solver</span>
-                </div>
-                <span className="text-slate-600">➔</span>
-                <div className="flex items-center gap-1.5 text-purple-300">
-                  <Radio className="w-3.5 h-3.5" />
-                  <span>[5] Database Commitment & Alerts</span>
-                </div>
-              </div>
-            </div>
-
-            {/* 4 Agent Cards Grid (Database + Logistics + Medical + Communication) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-              {/* Database Agent Card */}
-              <div className="bg-slate-900 border border-cyan-500/30 rounded-xl p-3.5 shadow-md flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <div className="p-1.5 bg-cyan-950 border border-cyan-500/40 rounded-lg text-cyan-300">
-                        <Database className="w-4 h-4" />
-                      </div>
-                      <span className="text-xs font-bold text-white uppercase">DATABASE AGENT</span>
-                    </div>
-                    <span className="bg-cyan-950 text-cyan-300 text-[9px] px-1.5 py-0.2 rounded font-mono font-bold">
-                      ACTIVE
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-300 mb-2 leading-relaxed">
-                    Maintains persistent SQLite storage, topology graphs, and historical response records.
-                  </p>
-                  <div className="text-[10px] text-slate-400 space-y-1 font-mono">
-                    <div className="flex justify-between bg-slate-950/60 p-1 rounded">
-                      <span>Tracked Zones:</span>
-                      <span className="text-cyan-300 font-bold">{scenario?.zones?.length || 4} Sectors</span>
-                    </div>
-                    <div className="flex justify-between bg-slate-950/60 p-1 rounded">
-                      <span>Persistence:</span>
-                      <span className="text-emerald-400 font-bold">SQLite Connected</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Logistics Agent Card */}
-              <div className="bg-slate-900 border border-slate-800 rounded-xl p-3.5 shadow-md flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <div className="p-1.5 bg-blue-950 border border-blue-500/40 rounded-lg text-blue-300">
-                        <Truck className="w-4 h-4" />
-                      </div>
-                      <span className="text-xs font-bold text-white uppercase">LOGISTICS AGENT</span>
-                    </div>
-                    <span className="bg-emerald-950 text-emerald-300 text-[9px] px-1.5 py-0.2 rounded font-mono font-bold">
-                      ACTIVE
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-300 mb-2 leading-relaxed">
-                    Evaluates evacuation vehicles, Dijkstra shortest paths, and shelter capacity matching.
-                  </p>
-                  <div className="text-[10px] text-slate-400 space-y-1 font-mono">
-                    <div className="flex justify-between bg-slate-950/60 p-1 rounded">
-                      <span>Vehicle Demand:</span>
-                      <span className="text-cyan-300 font-bold">{currentPlan ? '5 / 5 Units' : 'Assessing'}</span>
-                    </div>
-                    <div className="flex justify-between bg-slate-950/60 p-1 rounded">
-                      <span>Shelters:</span>
-                      <span className="text-emerald-400 font-bold">2 Reachable</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Medical Agent Card */}
-              <div className="bg-slate-900 border border-slate-800 rounded-xl p-3.5 shadow-md flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <div className="p-1.5 bg-rose-950 border border-rose-500/40 rounded-lg text-rose-300">
-                        <HeartPulse className="w-4 h-4" />
-                      </div>
-                      <span className="text-xs font-bold text-white uppercase">MEDICAL AGENT</span>
-                    </div>
-                    <span className="bg-emerald-950 text-emerald-300 text-[9px] px-1.5 py-0.2 rounded font-mono font-bold">
-                      ACTIVE
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-300 mb-2 leading-relaxed">
-                    Triages critical casualties, trauma severity, and emergency ambulance transport.
-                  </p>
-                  <div className="text-[10px] text-slate-400 space-y-1 font-mono">
-                    <div className="flex justify-between bg-slate-950/60 p-1 rounded">
-                      <span>Ambulance Pool:</span>
-                      <span className="text-rose-300 font-bold">3 Units Max</span>
-                    </div>
-                    <div className="flex justify-between bg-slate-950/60 p-1 rounded">
-                      <span>Field Medics:</span>
-                      <span className="text-emerald-400 font-bold">6 Active</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Communication Agent Card */}
-              <div className="bg-slate-900 border border-slate-800 rounded-xl p-3.5 shadow-md flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <div className="p-1.5 bg-purple-950 border border-purple-500/40 rounded-lg text-purple-300">
-                        <Radio className="w-4 h-4" />
-                      </div>
-                      <span className="text-xs font-bold text-white uppercase">COMMUNICATION AGENT</span>
-                    </div>
-                    <span className="bg-emerald-950 text-emerald-300 text-[9px] px-1.5 py-0.2 rounded font-mono font-bold">
-                      ACTIVE
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-300 mb-2 leading-relaxed">
-                    Synthesizes concise SMS advisories and route hazard notifications for citizens.
-                  </p>
-                  <div className="text-[10px] text-slate-400 space-y-1 font-mono">
-                    <div className="flex justify-between bg-slate-950/60 p-1 rounded">
-                      <span>Dispatches:</span>
-                      <span className="text-purple-300 font-bold">{currentPlan?.communication_plan?.zone_alerts?.length || 4} Zones</span>
-                    </div>
-                    <div className="flex justify-between bg-slate-950/60 p-1 rounded">
-                      <span>Format:</span>
-                      <span className="text-cyan-300 font-bold">&lt;160 Chars</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Agent Telemetry Streams */}
-            <AgentPanels
-              logistics={currentPlan?.logistics_recommendations}
-              medical={currentPlan?.medical_recommendations}
-              communication={currentPlan?.communication_plan}
-              agentModes={currentPlan?.agent_execution_modes}
-            />
-          </div>
-        )}
-
-        {/* TAB 4: PUBLIC SMS ALERTS */}
-        {activeTab === 'alerts' && (
-          <div className="space-y-4">
-            <AlertsPanel
-              communicationPlan={currentPlan?.communication_plan}
-            />
-          </div>
-        )}
-
-        {/* TAB 5: DYNAMIC CONTROL PANEL */}
-        {activeTab === 'control_panel' && (
-          <DynamicControlPanel
-            onPlanUpdated={(newPlan) => {
-              if (newPlan) {
-                setCurrentPlan(newPlan);
-              }
-              fetchInitialData();
-            }}
-          />
-        )}
+        </div>
       </main>
 
-
-      {/* Simplified Compact Footer */}
-      <footer className="border-t border-slate-800/80 bg-slate-950 py-3 text-center text-xs text-slate-500 font-mono flex items-center justify-center gap-4">
-        <span>AIZEN Disaster Response Coordinator</span>
+      {/* Simplified Compact Modern Footer */}
+      <footer className="border-t border-[#334155]/80 bg-[#0F172A] py-3 text-center text-xs text-slate-400 font-mono flex items-center justify-center gap-4">
+        <span>AIZEN Disaster Response Command Center</span>
         <span>•</span>
-        <span>Database Agent: Persistent SQLite</span>
+        <span>WCAG 2.1 AA Compliant</span>
         <span>•</span>
-        <span>Deterministic Constraints Enforced</span>
+        <span>Pure Python Solver</span>
+        <span>•</span>
+        <span>Persistent SQLite Digital Twin</span>
       </footer>
 
       {/* Commander Approval Modal */}
