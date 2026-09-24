@@ -46,8 +46,34 @@ class PriorityScorer:
         self.weights = weights or DEFAULT_WEIGHTS
 
     def calculate(self, zone: Zone) -> ZonePriority:
+        # Check manual priority override first
+        if zone.priority_override is not None:
+            override_score = min(100.0, max(0.0, round(float(zone.priority_override), 2)))
+            sev_scale = 10.0 if (getattr(zone, "is_scale_10", False) or zone.flood_severity > 5) else 5.0
+            sev_score = min(100.0, (zone.flood_severity / sev_scale) * 100.0)
+            crit_score = min(100.0, (zone.critical_patients / 15.0) * 100.0)
+            vuln_score = min(100.0, (zone.vulnerable_population / 150.0) * 100.0)
+            pop_score = min(100.0, (zone.population / 800.0) * 100.0)
+            evac_score = min(100.0, (zone.evacuation_demand / 120.0) * 100.0)
+            breakdown = PriorityFactorBreakdown(
+                severity_component=round(sev_score * self.weights["severity"], 2),
+                critical_patients_component=round(crit_score * self.weights["critical_patients"], 2),
+                vulnerable_component=round(vuln_score * self.weights["vulnerable_population"], 2),
+                population_component=round(pop_score * self.weights["population"], 2),
+                evac_demand_component=round(evac_score * self.weights["evacuation_demand"], 2),
+                total_score=override_score,
+            )
+            return ZonePriority(
+                zone_id=zone.id,
+                zone_name=zone.name,
+                score=override_score,
+                rank=0,
+                breakdown=breakdown,
+            )
+
         # Normalized component scores (0 to 100)
-        sev_score = (zone.flood_severity / 5.0) * 100.0
+        sev_scale = 10.0 if (getattr(zone, "is_scale_10", False) or zone.flood_severity > 5) else 5.0
+        sev_score = min(100.0, (zone.flood_severity / sev_scale) * 100.0)
         crit_score = min(100.0, (zone.critical_patients / 15.0) * 100.0)
         vuln_score = min(100.0, (zone.vulnerable_population / 150.0) * 100.0)
         pop_score = min(100.0, (zone.population / 800.0) * 100.0)
@@ -79,6 +105,7 @@ class PriorityScorer:
             rank=0,  # Will be assigned during ranking
             breakdown=breakdown,
         )
+
 
     def rank_zones(self, zones: List[Zone]) -> List[ZonePriority]:
         scored = [self.calculate(z) for z in zones]

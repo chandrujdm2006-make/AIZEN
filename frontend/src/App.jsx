@@ -11,6 +11,7 @@ import AgentPanels from './components/AgentPanels';
 import DecisionTracePanel from './components/DecisionTracePanel';
 import AlertsPanel from './components/AlertsPanel';
 import ApprovalModal from './components/ApprovalModal';
+import DynamicControlPanel from './components/DynamicControlPanel';
 
 import { 
   Bot, 
@@ -31,8 +32,10 @@ import {
   FileText,
   Activity,
   ShieldCheck,
-  Clock
+  Clock,
+  Sliders
 } from 'lucide-react';
+
 
 export default function App() {
   const [scenario, setScenario] = useState(null);
@@ -89,10 +92,11 @@ export default function App() {
       socket.onmessage = (event) => {
         try {
           const msg = JSON.parse(event.data);
-          if (msg.event === 'CRITICAL_ZONE_ADDED' || msg.event === 'PLAN_GENERATED') {
+          if (msg.event === 'CRITICAL_ZONE_ADDED' || msg.event === 'PLAN_GENERATED' || msg.event === 'CONTROL_PANEL_UPDATED') {
             fetchLatestPlan();
             fetchDatabaseState();
-          } else if (msg.event === 'SCENARIO_RESET') {
+            axios.get('/api/scenario').then(r => setScenario(r.data)).catch(() => {});
+          } else if (msg.event === 'SCENARIO_RESET' || msg.event === 'CONTROL_PANEL_RESET') {
             fetchInitialData();
           }
         } catch (e) {
@@ -389,7 +393,23 @@ export default function App() {
                 </span>
               )}
             </button>
+
+            <button
+              onClick={() => setActiveTab('control_panel')}
+              className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all cursor-pointer ${
+                activeTab === 'control_panel'
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-900/40'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+              }`}
+            >
+              <Sliders className="w-4 h-4 text-cyan-300" />
+              <span>Dynamic Control Panel</span>
+              <span className="bg-cyan-950 text-cyan-300 text-[10px] px-1.5 py-0.2 rounded font-mono border border-cyan-800/50 font-bold">
+                Admin
+              </span>
+            </button>
           </div>
+
 
           {/* Database Agent Live Status Pill */}
           <div className="hidden sm:flex items-center gap-2 text-xs font-mono bg-slate-900/80 border border-slate-800 px-3 py-1.5 rounded-lg text-slate-300">
@@ -668,7 +688,20 @@ export default function App() {
             />
           </div>
         )}
+
+        {/* TAB 5: DYNAMIC CONTROL PANEL */}
+        {activeTab === 'control_panel' && (
+          <DynamicControlPanel
+            onPlanUpdated={(newPlan) => {
+              if (newPlan) {
+                setCurrentPlan(newPlan);
+              }
+              fetchInitialData();
+            }}
+          />
+        )}
       </main>
+
 
       {/* Simplified Compact Footer */}
       <footer className="border-t border-slate-800/80 bg-slate-950 py-3 text-center text-xs text-slate-500 font-mono flex items-center justify-center gap-4">

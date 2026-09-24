@@ -38,9 +38,23 @@ def init_db():
         evacuation_demand INTEGER NOT NULL,
         x REAL NOT NULL,
         y REAL NOT NULL,
-        z REAL DEFAULT 0.0
+        z REAL DEFAULT 0.0,
+        vulnerable_percent REAL,
+        priority_override REAL,
+        is_scale_10 INTEGER DEFAULT 0
     )
     """)
+
+    # Safe migration for existing tables if columns missing
+    cursor.execute("PRAGMA table_info(zones)")
+    existing_cols = [row[1] for row in cursor.fetchall()]
+    if "vulnerable_percent" not in existing_cols:
+        cursor.execute("ALTER TABLE zones ADD COLUMN vulnerable_percent REAL")
+    if "priority_override" not in existing_cols:
+        cursor.execute("ALTER TABLE zones ADD COLUMN priority_override REAL")
+    if "is_scale_10" not in existing_cols:
+        cursor.execute("ALTER TABLE zones ADD COLUMN is_scale_10 INTEGER DEFAULT 0")
+
 
     # 2. Resources table
     cursor.execute("""
@@ -142,8 +156,23 @@ def init_db():
     )
     """)
 
+    # 10. Control panel logs table
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS control_panel_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+        commander_name TEXT,
+        action_type TEXT,
+        zones_json TEXT,
+        resources_json TEXT,
+        allocations_json TEXT,
+        status TEXT
+    )
+    """)
+
     conn.commit()
     conn.close()
+
 
 
 def seed_db_from_base_scenario():
@@ -223,5 +252,94 @@ def log_event(event_type: str, payload: Dict[str, Any]):
     conn.close()
 
 
+def update_zone_in_db(z: Dict[str, Any]):
+    """Inserts or updates a zone in SQLite."""
+    init_db()
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+    INSERT INTO zones (id, name, population, flood_severity, injured, critical_patients, 
+                       vulnerable_population, evacuation_demand, x, y, z, vulnerable_percent, priority_override, is_scale_10)
+    VALUES (:id, :name, :population, :flood_severity, :injured, :critical_patients, 
+            :vulnerable_population, :evacuation_demand, :x, :y, :z, :vulnerable_percent, :priority_override, :is_scale_10)
+    ON CONFLICT(id) DO UPDATE SET
+        name=excluded.name,
+        population=excluded.population,
+        flood_severity=excluded.flood_severity,
+        injured=excluded.injured,
+        critical_patients=excluded.critical_patients,
+        vulnerable_population=excluded.vulnerable_population,
+        evacuation_demand=excluded.evacuation_demand,
+        vulnerable_percent=excluded.vulnerable_percent,
+        priority_override=excluded.priority_override,
+        is_scale_10=excluded.is_scale_10
+    """, {
+        "id": z.get("id"),
+        "name": z.get("name"),
+        "population": z.get("population", 0),
+        "flood_severity": z.get("flood_severity", 1),
+        "injured": z.get("injured", 0),
+        "critical_patients": z.get("critical_patients", 0),
+        "vulnerable_population": z.get("vulnerable_population", 0),
+        "evacuation_demand": z.get("evacuation_demand", 0),
+        "x": z.get("x", 200.0),
+        "y": z.get("y", 200.0),
+        "z": z.get("z", 0.0),
+        "vulnerable_percent": z.get("vulnerable_percent"),
+        "priority_override": z.get("priority_override"),
+        "is_scale_10": 1 if z.get("is_scale_10") else 0,
+    })
+    conn.commit()
+    conn.close()
+
+
+def update_resource_pool_in_db(pool_dict: Dict[str, Any]):
+    """Updates global resource totals in SQLite."""
+    init_db()
+    conn = get_connection()
+    cursor = conn.cursor()
+    if "ambulances" in pool_dict:
+        cursor.execute("UPDATE resources SET total_pool = ?, available_pool = ? WHERE id = 'ambulances'",
+                       (pool_dict["ambulances"], pool_dict["ambulances"]))
+    if "evacuation_vehicles" in pool_dict:
+        cursor.execute("UPDATE resources SET total_pool = ?, available_pool = ? WHERE id = 'evacuation_vehicles'",
+                       (pool_dict["evacuation_vehicles"], pool_dict["evacuation_vehicles"]))
+    if "medics" in pool_dict:
+        cursor.execute("UPDATE resources SET total_pool = ?, available_pool = ? WHERE id = 'medics'",
+                       (pool_dict["medics"], pool_dict["medics"]))
+    conn.commit()
+    conn.close()
+
+
+def save_control_panel_log(
+    commander_name: str,
+    action_type: str,
+    zones_data: Any,
+    resources_data: Any,
+    allocations_data: Any,
+    status: str = "success"
+) -> int:
+    """Stores audit log entry for commander adjustments."""
+    init_db()
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+    INSERT INTO control_panel_logs (commander_name, action_type, zones_json, resources_json, allocations_json, status)
+    VALUES (?, ?, ?, ?, ?, ?)
+    """, (
+        commander_name,
+        action_type,
+        json.dumps(zones_data) if zones_data else None,
+        json.dumps(resources_data) if resources_data else None,
+        json.dumps(allocations_data) if allocations_data else None,
+        status,
+    ))
+    log_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    return log_id
+
+
 # Ensure tables are initialized on import
 init_db()
+

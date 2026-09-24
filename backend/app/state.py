@@ -4,9 +4,11 @@ Handles baseline loading, dynamic zone addition, commander approvals, and diff c
 """
 
 import json
+import math
 from pathlib import Path
 from typing import List, Optional, Dict
 import datetime
+
 
 from backend.app.models import (
     ScenarioState,
@@ -15,7 +17,21 @@ from backend.app.models import (
     CoordinatedPlan,
     ReplanDiff,
     ZoneAllocationDiff,
+    ZoneAllocation,
+    ResourceAllocation,
+    ResourceUsageSummary,
+    ShelterStatus,
+    DecisionTrace,
+    LogisticsRecommendation,
+    MedicalRecommendation,
+    CommunicationPlan,
+    ZoneAlert,
+    ZoneControlUpdate,
+    GlobalPoolControlUpdate,
+    ZoneManualAllocation,
+    ControlPanelConflictWarning,
 )
+
 
 
 class StateManager:
@@ -184,6 +200,209 @@ class StateManager:
             summary_of_changes=summary_lines,
         )
 
+    def get_all_zones_including_potential(self) -> List[Zone]:
+        """Returns active zones plus potential zones (Zone E) so all A, B, C, D, E are visible."""
+        state = self.get_current_state()
+        zones_dict = {z.id: z.model_copy() for z in state.zones}
+
+        if "zone_e" not in zones_dict:
+            zone_e_path = self.data_dir / "scenario_zone_e.json"
+            if zone_e_path.exists():
+                with open(zone_e_path, "r", encoding="utf-8") as f:
+                    e_data = json.load(f)
+                z_e = Zone(**e_data["zone"])
+                zones_dict["zone_e"] = z_e
+
+        # Compute vulnerable_percent for display if not set
+        all_zones = list(zones_dict.values())
+        for z in all_zones:
+            if z.vulnerable_percent is None and z.population > 0:
+                z.vulnerable_percent = round((z.vulnerable_population / z.population) * 100.0, 1)
+
+        # Sort alphabetically by ID (zone_a, zone_b, zone_c, zone_d, zone_e)
+        all_zones.sort(key=lambda z: z.id)
+        return all_zones
+
+    def update_from_control_panel(
+        self,
+        zones_update: List[ZoneControlUpdate],
+        pool_update: GlobalPoolControlUpdate,
+    ) -> ScenarioState:
+        """Applies dynamic adjustments to zone demographics, priority overrides, and resource pools."""
+        state = self.get_current_state()
+
+        # Update or add zones
+        for zu in zones_update:
+            existing_zone = next((z for z in state.zones if z.id == zu.id), None)
+            vuln_pop = round(zu.population * (zu.vulnerable_percent / 100.0))
+
+            if existing_zone:
+                existing_zone.name = zu.name
+                existing_zone.population = zu.population
+                existing_zone.evacuation_demand = zu.evacuation_demand
+                existing_zone.injured = zu.injured
+                existing_zone.critical_patients = zu.critical_patients
+                existing_zone.flood_severity = zu.flood_severity
+                existing_zone.vulnerable_percent = zu.vulnerable_percent
+                existing_zone.vulnerable_population = vuln_pop
+                existing_zone.priority_override = zu.priority_override
+                existing_zone.is_scale_10 = True
+            else:
+                # If zone_e or new zone being activated
+                if zu.id == "zone_e":
+                    zone_e_path = self.data_dir / "scenario_zone_e.json"
+                    new_roads = []
+                    if zone_e_path.exists():
+                        with open(zone_e_path, "r", encoding="utf-8") as f:
+                            e_data = json.load(f)
+                        new_roads = [RoadEdge(**r) for r in e_data.get("new_roads", [])]
+                    new_z = Zone(
+                        id=zu.id,
+                        name=zu.name,
+                        population=zu.population,
+                        flood_severity=zu.flood_severity,
+                        injured=zu.injured,
+                        critical_patients=zu.critical_patients,
+                        vulnerable_population=vuln_pop,
+                        evacuation_demand=zu.evacuation_demand,
+                        x=340.0,
+                        y=300.0,
+                        vulnerable_percent=zu.vulnerable_percent,
+                        priority_override=zu.priority_override,
+                        is_scale_10=True,
+                    )
+                    self.add_zone(new_z, new_roads)
+                else:
+                    new_z = Zone(
+                        id=zu.id,
+                        name=zu.name,
+                        population=zu.population,
+                        flood_severity=zu.flood_severity,
+                        injured=zu.injured,
+                        critical_patients=zu.critical_patients,
+                        vulnerable_population=vuln_pop,
+                        evacuation_demand=zu.evacuation_demand,
+                        x=250.0,
+                        y=250.0,
+                        vulnerable_percent=zu.vulnerable_percent,
+                        priority_override=zu.priority_override,
+                        is_scale_10=True,
+                    )
+                    state.zones.append(new_z)
+
+        # Update resource pool
+        state.resource_pool.ambulances = pool_update.ambulances
+        state.resource_pool.evacuation_vehicles = pool_update.evacuation_vehicles
+        state.resource_pool.medics = pool_update.medics
+
+        # Proportionally adjust shelter capacity if total changed
+        current_total_shelter = sum(s.capacity for s in state.resource_pool.shelters)
+        if pool_update.shelter_capacity > 0 and current_total_shelter > 0:
+            ratio = pool_update.shelter_capacity / current_total_shelter
+            for s in state.resource_pool.shelters:
+                s.capacity = max(10, round(s.capacity * ratio))
+        elif pool_update.shelter_capacity > 0 and current_total_shelter == 0:
+            if state.resource_pool.shelters:
+                per_s = pool_update.shelter_capacity // len(state.resource_pool.shelters)
+                for s in state.resource_pool.shelters:
+                    s.capacity = per_s
+
+        return state
+
+    def check_control_panel_conflicts(
+        self,
+        manual_allocations: Optional[List[ZoneManualAllocation]] = None,
+    ) -> List[ControlPanelConflictWarning]:
+        """Validates hard constraints, unmet demands, and allocation impossibilities."""
+        state = self.get_current_state()
+        warnings: List[ControlPanelConflictWarning] = []
+        pool = state.resource_pool
+
+        # 1. Total pool impossibility checks
+        total_evac_demand = sum(z.evacuation_demand for z in state.zones)
+        total_evac_capacity = pool.evacuation_vehicles * pool.vehicle_passenger_capacity
+        if total_evac_demand > total_evac_capacity:
+            warnings.append(ControlPanelConflictWarning(
+                type="warning",
+                resource_or_zone="evacuation_vehicles",
+                message=f"Global evacuation deficit: {total_evac_demand} evacuees exceed total fleet capacity ({total_evac_capacity} seats across {pool.evacuation_vehicles} vehicles).",
+                details=f"Shortage of {total_evac_demand - total_evac_capacity} seats. Additional {math.ceil((total_evac_demand - total_evac_capacity) / 20)} vehicles needed.",
+            ))
+
+        total_critical = sum(z.critical_patients for z in state.zones)
+        total_amb_transport = pool.ambulances * 2
+        if total_critical > total_amb_transport:
+            warnings.append(ControlPanelConflictWarning(
+                type="error",
+                resource_or_zone="ambulances",
+                message=f"Critical ambulance deficit: {total_critical} critical casualties require urgent hospital transport, but {pool.ambulances} ambulances can only transport {total_amb_transport}.",
+                details=f"At least {math.ceil((total_critical - total_amb_transport) / 2)} more ambulances required to prevent triage mortality.",
+            ))
+
+        # 2. Manual allocation constraint validations
+        if manual_allocations:
+            alloc_amb = sum(a.assigned_ambulances for a in manual_allocations)
+            alloc_veh = sum(a.assigned_evacuation_vehicles for a in manual_allocations)
+            alloc_med = sum(a.assigned_medics for a in manual_allocations)
+            alloc_she = sum(a.assigned_shelter_spaces for a in manual_allocations)
+            total_shelter_cap = sum(s.capacity for s in pool.shelters)
+
+            if alloc_amb > pool.ambulances:
+                warnings.append(ControlPanelConflictWarning(
+                    type="error",
+                    resource_or_zone="ambulances",
+                    message=f"Constraint Violation: {alloc_amb} ambulances allocated, exceeding global pool of {pool.ambulances} units!",
+                    details=f"Over-allocation by {alloc_amb - pool.ambulances} ambulances.",
+                ))
+            if alloc_veh > pool.evacuation_vehicles:
+                warnings.append(ControlPanelConflictWarning(
+                    type="error",
+                    resource_or_zone="evacuation_vehicles",
+                    message=f"Constraint Violation: {alloc_veh} evacuation vehicles allocated, exceeding global pool of {pool.evacuation_vehicles} units!",
+                    details=f"Over-allocation by {alloc_veh - pool.evacuation_vehicles} vehicles.",
+                ))
+            if alloc_med > pool.medics:
+                warnings.append(ControlPanelConflictWarning(
+                    type="error",
+                    resource_or_zone="medics",
+                    message=f"Constraint Violation: {alloc_med} medics allocated, exceeding global pool of {pool.medics} personnel!",
+                    details=f"Over-allocation by {alloc_med - pool.medics} medics.",
+                ))
+            if alloc_she > total_shelter_cap:
+                warnings.append(ControlPanelConflictWarning(
+                    type="error",
+                    resource_or_zone="shelter",
+                    message=f"Constraint Violation: {alloc_she} shelter spaces assigned, exceeding total capacity of {total_shelter_cap} beds!",
+                    details=f"Over-allocation by {alloc_she - total_shelter_cap} shelter spaces.",
+                ))
+
+            # Per-zone unmet demand warnings
+            zone_map = {z.id: z for z in state.zones}
+            for a in manual_allocations:
+                z = zone_map.get(a.zone_id)
+                if not z:
+                    continue
+                # Critical casualties vs ambulances
+                if z.critical_patients > (a.assigned_ambulances * 2):
+                    unmet_crit = z.critical_patients - (a.assigned_ambulances * 2)
+                    warnings.append(ControlPanelConflictWarning(
+                        type="warning",
+                        resource_or_zone=z.name,
+                        message=f"{z.name}: {unmet_crit} critical patients left unassigned ({a.assigned_ambulances} ambulances transport {a.assigned_ambulances * 2} of {z.critical_patients}).",
+                    ))
+                # Evacuation demand vs vehicles
+                veh_cap = a.assigned_evacuation_vehicles * pool.vehicle_passenger_capacity
+                if z.evacuation_demand > veh_cap:
+                    unmet_evac = z.evacuation_demand - veh_cap
+                    warnings.append(ControlPanelConflictWarning(
+                        type="warning",
+                        resource_or_zone=z.name,
+                        message=f"{z.name}: {unmet_evac} evacuees have no transport assigned ({a.assigned_evacuation_vehicles} vehicles carry {veh_cap} of {z.evacuation_demand}).",
+                    ))
+
+        return warnings
+
 
 # Global singleton instance for easy import across endpoints
 global_state_manager = StateManager()
+

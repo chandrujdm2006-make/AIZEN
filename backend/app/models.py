@@ -11,13 +11,17 @@ class Zone(BaseModel):
     id: str = Field(..., description="Unique zone identifier, e.g. 'zone_a'")
     name: str = Field(..., description="Human-readable zone name")
     population: int = Field(..., ge=0)
-    flood_severity: int = Field(..., ge=1, le=5, description="Flood severity scale 1-5")
+    flood_severity: int = Field(..., ge=1, le=10, description="Flood severity scale 1-10")
     injured: int = Field(..., ge=0)
     critical_patients: int = Field(..., ge=0)
     vulnerable_population: int = Field(..., ge=0, description="Elderly, children, disabled")
     evacuation_demand: int = Field(..., ge=0, description="Number of people needing evacuation")
     x: float = Field(..., description="Map X coordinate (SVG canvas units)")
     y: float = Field(..., description="Map Y coordinate (SVG canvas units)")
+    vulnerable_percent: Optional[float] = Field(None, ge=0.0, le=100.0, description="Vulnerable population percentage (0-100)")
+    priority_override: Optional[float] = Field(None, ge=0.0, le=100.0, description="Manual priority override (0-100)")
+    is_scale_10: bool = Field(default=False, description="True if flood severity is recorded on a 1-10 scale")
+
 
 
 class RoadEdge(BaseModel):
@@ -269,3 +273,58 @@ class AddZoneRequest(BaseModel):
 class PlanApprovalRequest(BaseModel):
     commander_name: str
     notes: Optional[str] = "Approved after operational review."
+
+
+# --- DYNAMIC CONTROL PANEL MODELS ---
+class ZoneControlUpdate(BaseModel):
+    id: str
+    name: str
+    population: int = Field(..., ge=0)
+    evacuation_demand: int = Field(..., ge=0)
+    injured: int = Field(..., ge=0)
+    critical_patients: int = Field(..., ge=0)
+    flood_severity: int = Field(..., ge=1, le=10)
+    vulnerable_percent: float = Field(..., ge=0.0, le=100.0)
+    priority_override: Optional[float] = Field(None, ge=0.0, le=100.0)
+
+
+class GlobalPoolControlUpdate(BaseModel):
+    ambulances: int = Field(..., ge=0)
+    evacuation_vehicles: int = Field(..., ge=0)
+    medics: int = Field(..., ge=0)
+    shelter_capacity: int = Field(..., ge=0)
+
+
+class ZoneManualAllocation(BaseModel):
+    zone_id: str
+    assigned_ambulances: int = Field(..., ge=0)
+    assigned_evacuation_vehicles: int = Field(..., ge=0)
+    assigned_medics: int = Field(..., ge=0)
+    assigned_shelter_spaces: int = Field(..., ge=0)
+
+
+class ControlPanelSyncRequest(BaseModel):
+    zones: List[ZoneControlUpdate]
+    resources: GlobalPoolControlUpdate
+    manual_allocations: Optional[List[ZoneManualAllocation]] = None
+    auto_replan: bool = True
+    commander_name: Optional[str] = "Emergency Commander"
+
+
+class ControlPanelConflictWarning(BaseModel):
+    type: Literal["error", "warning", "info"]
+    resource_or_zone: str
+    message: str
+    details: Optional[str] = None
+
+
+class ControlPanelStateResponse(BaseModel):
+    zones: List[Zone]
+    resource_pool: ResourcePool
+    current_allocations: List[ZoneAllocation]
+    zones_ranked: List[ZonePriority]
+    utilization: Dict[str, float]
+    conflicts: List[ControlPanelConflictWarning]
+    total_shelter_capacity: int
+    total_shelter_allocated: int
+    is_replan_active: bool = False

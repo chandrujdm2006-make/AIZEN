@@ -20,13 +20,27 @@ from backend.app.models import (
     ReplanDiff,
     Zone,
     RoadEdge,
+    ZoneControlUpdate,
+    GlobalPoolControlUpdate,
+    ZoneManualAllocation,
+    ControlPanelSyncRequest,
+    ControlPanelConflictWarning,
+    ControlPanelStateResponse,
 )
 from backend.app.state import global_state_manager
-from backend.app.coordinator import DisasterCoordinator
+from backend.app.coordinator import DisasterCoordinator, PriorityScorer
 from backend.app.llm import get_llm_client
-from backend.app.database import init_db, seed_db_from_base_scenario, log_event
+from backend.app.database import (
+    init_db,
+    seed_db_from_base_scenario,
+    log_event,
+    update_zone_in_db,
+    update_resource_pool_in_db,
+    save_control_panel_log,
+)
 from backend.app.agents.database_agent import database_agent
 from backend.app.websocket_manager import ws_manager
+
 
 
 @asynccontextmanager
@@ -375,3 +389,203 @@ async def approve_plan(
         "approved_at": approved_plan.approved_at,
         "notes": approval.notes,
     }
+
+
+# --- DYNAMIC CONTROL PANEL ENDPOINTS ---
+
+@app.get("/api/control-panel/state")
+def get_control_panel_state():
+    """
+    Returns full real-time state for the Dynamic Control Panel:
+    - All zones (A, B, C, D, E) with demographics, flood severity (1-10), vulnerable %, priority overrides
+    - Global resource pool with total & available limits
+    - Real-time utilization % per resource
+    - Current zone allocations
+    - Zone priority rankings & auto-calculated vs override breakdown
+    - Real-time constraint violations and conflict warnings
+    """
+    state = global_state_manager.get_current_state()
+    plan = global_state_manager.get_latest_plan()
+    scorer = PriorityScorer()
+
+    # Get all zones including potential Zone E
+    all_zones = global_state_manager.get_all_zones_including_potential()
+    ranked_zones = scorer.rank_zones(all_zones)
+
+    # Calculate real-time utilization
+    pool = state.resource_pool
+    allocations = plan.allocations if plan else []
+
+    total_amb_alloc = sum(a.ambulances.allocated for a in allocations) if allocations else 0
+    total_veh_alloc = sum(a.evacuation_vehicles.allocated for a in allocations) if allocations else 0
+    total_med_alloc = sum(a.medics.allocated for a in allocations) if allocations else 0
+    total_she_alloc = sum(a.evacuees_sheltered for a in allocations) if allocations else 0
+    total_shelter_cap = sum(s.capacity for s in pool.shelters)
+
+    utilization = {
+        "ambulances": round((total_amb_alloc / pool.ambulances * 100.0), 1) if pool.ambulances > 0 else 0.0,
+        "evacuation_vehicles": round((total_veh_alloc / pool.evacuation_vehicles * 100.0), 1) if pool.evacuation_vehicles > 0 else 0.0,
+        "medics": round((total_med_alloc / pool.medics * 100.0), 1) if pool.medics > 0 else 0.0,
+        "shelter": round((total_she_alloc / total_shelter_cap * 100.0), 1) if total_shelter_cap > 0 else 0.0,
+    }
+
+    # Evaluate conflicts & warnings
+    conflicts = global_state_manager.check_control_panel_conflicts()
+
+    return {
+        "zones": all_zones,
+        "resource_pool": pool,
+        "current_allocations": allocations,
+        "zones_ranked": ranked_zones,
+        "utilization": utilization,
+        "conflicts": conflicts,
+        "total_shelter_capacity": total_shelter_cap,
+        "total_shelter_allocated": total_she_alloc,
+        "is_replan_active": plan is not None,
+        "plan_version": plan.plan_version if plan else None,
+    }
+
+
+@app.post("/api/control-panel/sync")
+async def sync_control_panel(request: ControlPanelSyncRequest):
+    """
+    Dynamically applies updated zone parameters, priority overrides, and resource pool limits.
+    Validates hard constraints, updates SQLite, triggers automated re-planning,
+    and broadcasts live WebSocket update to the main digital twin dashboard.
+    """
+    old_plan = global_state_manager.get_latest_plan()
+
+    # 1. Hard constraint validation for manual allocations if supplied
+    if request.manual_allocations:
+        tot_amb = sum(a.assigned_ambulances for a in request.manual_allocations)
+        tot_veh = sum(a.assigned_evacuation_vehicles for a in request.manual_allocations)
+        tot_med = sum(a.assigned_medics for a in request.manual_allocations)
+        tot_she = sum(a.assigned_shelter_spaces for a in request.manual_allocations)
+
+        if tot_amb > request.resources.ambulances:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Constraint Violation: Total assigned ambulances ({tot_amb}) exceeds available pool limit ({request.resources.ambulances})."
+            )
+        if tot_veh > request.resources.evacuation_vehicles:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Constraint Violation: Total assigned evacuation vehicles ({tot_veh}) exceeds available pool limit ({request.resources.evacuation_vehicles})."
+            )
+        if tot_med > request.resources.medics:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Constraint Violation: Total assigned medics ({tot_med}) exceeds available pool limit ({request.resources.medics})."
+            )
+        if tot_she > request.resources.shelter_capacity:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Constraint Violation: Total assigned shelter spaces ({tot_she}) exceeds total shelter capacity ({request.resources.shelter_capacity})."
+            )
+
+    # 2. Update state manager with new parameters
+    updated_state = global_state_manager.update_from_control_panel(
+        zones_update=request.zones,
+        pool_update=request.resources,
+    )
+
+    # 3. Persist updates to SQLite database
+    for zu in request.zones:
+        vuln_pop = round(zu.population * (zu.vulnerable_percent / 100.0))
+        z_dict = zu.model_dump()
+        z_dict["vulnerable_population"] = vuln_pop
+        update_zone_in_db(z_dict)
+
+    update_resource_pool_in_db(request.resources.model_dump())
+
+    # 4. Re-plan or apply manual allocations
+    history = global_state_manager.get_plan_history()
+    next_version = len(history) + 1
+
+    coordinator = DisasterCoordinator()
+    new_plan = coordinator.coordinate_plan(
+        state=updated_state,
+        plan_version=next_version,
+        is_replan=True,
+    )
+
+    # If manual allocations provided, override solver allocations with commander assignments
+    if request.manual_allocations:
+        manual_map = {m.zone_id: m for m in request.manual_allocations}
+        for a in new_plan.allocations:
+            if a.zone_id in manual_map:
+                m = manual_map[a.zone_id]
+                a.ambulances.allocated = m.assigned_ambulances
+                a.ambulances.unmet = max(0, a.ambulances.requested - m.assigned_ambulances)
+
+                a.evacuation_vehicles.allocated = m.assigned_evacuation_vehicles
+                a.evacuation_vehicles.unmet = max(0, a.evacuation_vehicles.requested - m.assigned_evacuation_vehicles)
+
+                a.medics.allocated = m.assigned_medics
+                a.medics.unmet = max(0, a.medics.requested - m.assigned_medics)
+
+                a.evacuees_sheltered = m.assigned_shelter_spaces
+                a.rationale = f"Tactical manual assignment by Commander {request.commander_name}"
+
+        # Recalculate resource summaries for manual allocation
+        for summary in new_plan.resource_summaries:
+            if summary.resource == "ambulances":
+                tot = sum(a.ambulances.allocated for a in new_plan.allocations)
+                summary.total_allocated = tot
+                summary.total_unmet = max(0, sum(a.ambulances.unmet for a in new_plan.allocations))
+                summary.utilization_percentage = round((tot / updated_state.resource_pool.ambulances) * 100.0, 1)
+            elif summary.resource == "evacuation_vehicles":
+                tot = sum(a.evacuation_vehicles.allocated for a in new_plan.allocations)
+                summary.total_allocated = tot
+                summary.total_unmet = max(0, sum(a.evacuation_vehicles.unmet for a in new_plan.allocations))
+                summary.utilization_percentage = round((tot / updated_state.resource_pool.evacuation_vehicles) * 100.0, 1)
+            elif summary.resource == "medics":
+                tot = sum(a.medics.allocated for a in new_plan.allocations)
+                summary.total_allocated = tot
+                summary.total_unmet = max(0, sum(a.medics.unmet for a in new_plan.allocations))
+                summary.utilization_percentage = round((tot / updated_state.resource_pool.medics) * 100.0, 1)
+
+    diff = None
+    if old_plan:
+        diff = global_state_manager.compute_replan_diff(old_plan, new_plan)
+
+    global_state_manager.save_plan(new_plan)
+    database_agent.store_allocation_decision(new_plan)
+
+    save_control_panel_log(
+        commander_name=request.commander_name or "Commander",
+        action_type="CONTROL_PANEL_SYNC",
+        zones_data=[z.model_dump() for z in request.zones],
+        resources_data=request.resources.model_dump(),
+        allocations_data=[m.model_dump() for m in request.manual_allocations] if request.manual_allocations else None,
+        status="success",
+    )
+
+    # 5. Broadcast real-time update to all dashboard listeners
+    await ws_manager.broadcast({
+        "event": "CONTROL_PANEL_UPDATED",
+        "plan_version": next_version,
+        "commander_name": request.commander_name,
+        "diff": diff.model_dump() if diff else None,
+        "zones_ranked": [z.model_dump() for z in new_plan.zones_ranked],
+        "allocations": [a.model_dump() for a in new_plan.allocations],
+    })
+
+    conflicts = global_state_manager.check_control_panel_conflicts(request.manual_allocations)
+
+    return {
+        "status": "success",
+        "plan": new_plan,
+        "diff": diff,
+        "conflicts": conflicts,
+    }
+
+
+@app.post("/api/control-panel/reset")
+async def reset_control_panel():
+    """Resets all zones and resource pool to baseline defaults."""
+    state = global_state_manager.reset_to_base()
+    seed_db_from_base_scenario()
+    await ws_manager.broadcast({"event": "CONTROL_PANEL_RESET"})
+    return {"status": "reset", "state": state}
+
